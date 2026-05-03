@@ -1,0 +1,7 @@
+name: feature-design
+description: "Use when designing a feature from a request, draft issue, references, PRs, screenshots, or code context, and the goal is an implementation-ready GitHub issue."
+codex:
+  interface:
+    display_name: Feature Design
+    short_description: Design features and write implementation-ready GitHub issues
+    default_prompt: Use $feature-design to turn a request into an implementation-ready GitHub issue.

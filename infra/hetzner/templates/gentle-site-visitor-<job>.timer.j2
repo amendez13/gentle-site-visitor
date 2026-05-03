@@ -1,0 +1,10 @@
+[Unit]
+Description=gentle-site-visitor <job> schedule
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=gentle-site-visitor-<job>.service
+
+[Install]
+WantedBy=timers.target

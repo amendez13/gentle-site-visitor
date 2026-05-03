@@ -1,0 +1,60 @@
+# gentle-site-visitor Configuration
+# Copy this file to config.yaml and fill in your values:
+#   cp config/config.example.yaml config/config.yaml
+#
+# WARNING: config.yaml contains sensitive data and should NOT be committed to git
+
+# Application settings
+app:
+  # Enable debug mode (more verbose logging)
+  debug: false
+
+  # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+
+  # Log file path (optional, logs to console if not set)
+  # log_file: logs/app.log
+
+# Add your configuration sections below
+# Example:
+#
+# database:
+#   host: localhost
+#   port: 5432
+#   name: mydb
+#   user: myuser
+#   password: REPLACE_WITH_YOUR_PASSWORD
+#
+# api:
+#   base_url: https://api.example.com
+#   api_key: REPLACE_WITH_YOUR_API_KEY
+#   timeout: 30
+
+# Processing settings
+processing:
+  # Maximum concurrent operations
+  max_workers: 4
+
+  # Batch size for bulk operations
+  batch_size: 100
+
+  # Enable dry run mode (no actual changes)
+  dry_run: false
+
+observability:
+  # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+
+  # Console output style: human or json
+  log_format: human
+
+  # Optional JSONL file path for dual-sink logging
+  jsonl_log_path: ""
+
+  # Optional session-artifact pattern for long-running tasks
+  sessions:
+    enabled: false
+    sessions_dir: "data/sessions"
+    mode: "failures"
+    retention_days: 14
+    max_sessions: 100

@@ -1,0 +1,7 @@
+name: session-notes
+description: Use when creating or updating daily session notes. Optionally update a secondary summary log when the user explicitly asks for it.
+codex:
+  interface:
+    display_name: Session Notes
+    short_description: Update daily session notes and optional summary logs
+    default_prompt: Use $session-notes to update today's session notes.

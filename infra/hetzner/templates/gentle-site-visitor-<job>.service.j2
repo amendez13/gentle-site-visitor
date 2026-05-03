@@ -1,0 +1,17 @@
+[Unit]
+Description=gentle-site-visitor <job> service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=gentle-site-visitor
+Group=gentle-site-visitor
+WorkingDirectory=/opt/gentle-site-visitor
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/gentle-site-visitor/venv/bin/python -m src.main
+TimeoutStopSec=300
+SyslogIdentifier=gentle-site-visitor
+
+[Install]
+WantedBy=multi-user.target
