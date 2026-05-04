@@ -33,7 +33,7 @@ The aggregate `CI Status Check` job still runs and reports the skip reason, so t
 
 All CI jobs except `resolve-runner` execute in the same image:
 
-- `ghcr.io/alex3m6/gentle-site-visitor-ci:latest`
+- `ghcr.io/amendez13/gentle-site-visitor-ci:latest`
 - multi-platform manifest: `linux/amd64` and `linux/arm64`
 - checkout path isolation via `path: repo`
 - `safe.directory` configured in every container job
@@ -90,8 +90,8 @@ The CI image workflow rebuilds and publishes the shared image when these inputs 
 
 Published tags:
 
-- `ghcr.io/alex3m6/gentle-site-visitor-ci:latest`
-- `ghcr.io/alex3m6/gentle-site-visitor-ci:<git-sha>`
+- `ghcr.io/amendez13/gentle-site-visitor-ci:latest`
+- `ghcr.io/amendez13/gentle-site-visitor-ci:<git-sha>`
 
 Published platforms:
 
@@ -146,7 +146,7 @@ flowchart LR
     F --> H
     G --> H
 
-    I["ci-image.yml"] --> J["Build ghcr.io/alex3m6/gentle-site-visitor-ci"]
+    I["ci-image.yml"] --> J["Build ghcr.io/amendez13/gentle-site-visitor-ci"]
     J --> K["linux/amd64 + linux/arm64"]
     K --> L["latest + sha tags"]
     L --> C

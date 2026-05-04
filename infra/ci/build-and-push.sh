@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${REPO:-ghcr.io/alex3m6/gentle-site-visitor-ci}"
+REPO="${REPO:-ghcr.io/amendez13/gentle-site-visitor-ci}"
 SHA="$(git rev-parse --short HEAD)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Authenticate first:
-#   echo "$GHCR_TOKEN" | docker login ghcr.io -u "alex3m6" --password-stdin
+#   echo "$GHCR_TOKEN" | docker login ghcr.io -u "amendez13" --password-stdin
 
 BUILDER_NAME="${BUILDER_NAME:-gentle-site-visitor-ci-multiarch}"
 PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
