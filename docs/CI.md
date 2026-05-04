@@ -17,7 +17,7 @@ The CI workflow runs on pushes and pull requests targeting `main` and `develop`.
   - `self_hosted_linux`
   - `self_hosted_linux_arm64`
 - Downstream jobs use `runs-on: ${{ fromJSON(needs.resolve-runner.outputs.runner) }}`.
-- `resolve-runner` also emits `container.options` for self-hosted runs so containerized jobs keep workspace file ownership compatible with the runner user.
+- `resolve-runner` also emits `container.options`; GitHub-hosted runs use root so Playwright can install browser system dependencies, while self-hosted runs keep workspace file ownership compatible with the runner user.
 
 ### Smart Skip Logic
 

@@ -56,7 +56,7 @@ jobs:
             github_hosted)
               echo 'runner=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
               echo 'target=github_hosted' >> "$GITHUB_OUTPUT"
-              echo 'container_options=' >> "$GITHUB_OUTPUT"
+              echo 'container_options=--user root' >> "$GITHUB_OUTPUT"
               ;;
             self_hosted_linux)
               echo 'runner=["self-hosted","linux"]' >> "$GITHUB_OUTPUT"
@@ -72,7 +72,7 @@ jobs:
               echo "::warning::Unknown runner target '$TARGET'. Falling back to github_hosted."
               echo 'runner=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
               echo 'target=github_hosted' >> "$GITHUB_OUTPUT"
-              echo 'container_options=' >> "$GITHUB_OUTPUT"
+              echo 'container_options=--user root' >> "$GITHUB_OUTPUT"
               ;;
           esac
 
