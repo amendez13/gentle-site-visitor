@@ -39,6 +39,7 @@ All CI jobs except `resolve-runner` execute in the same image:
 - `safe.directory` configured in every container job
 - no per-job `actions/setup-python`
 - Python matrix jobs call preinstalled interpreters directly (`python3.10`, `python3.11`, `python3.12`)
+- coverage and test jobs install the checked-out `requirements-dev.txt` before running pytest, so dependency changes in a PR are tested even before the shared image is rebuilt
 
 ### Failure Short-Circuiting
 

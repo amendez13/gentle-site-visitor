@@ -25,11 +25,11 @@ class TestLogContext:
         assert context.phase == ""
 
     def test_set_and_get_context(self) -> None:
-        set_log_context(session_id="run-1", task_id="job-42", phase="fetch")
+        set_log_context(session_id="run-1", task_id="task-42", phase="fetch")
         context = get_log_context()
 
         assert context.session_id == "run-1"
-        assert context.task_id == "job-42"
+        assert context.task_id == "task-42"
         assert context.phase == "fetch"
 
 
@@ -51,12 +51,12 @@ class TestJSONFormatter:
         )
 
     def test_includes_correlation_fields(self) -> None:
-        set_log_context(session_id="run-1", task_id="job-42", phase="fetch")
+        set_log_context(session_id="run-1", task_id="task-42", phase="fetch")
 
         payload = json.loads(JSONFormatter().format(self._make_record()))
 
         assert payload["session_id"] == "run-1"
-        assert payload["task_id"] == "job-42"
+        assert payload["task_id"] == "task-42"
         assert payload["phase"] == "fetch"
 
     def test_includes_extra_fields(self) -> None:
@@ -118,7 +118,7 @@ class TestConfigureLogging:
         handler = configure_logging(jsonl_path=str(log_path))
         logger = logging.getLogger("test.write")
         try:
-            set_log_context(session_id="run-1", task_id="job-42", phase="write")
+            set_log_context(session_id="run-1", task_id="task-42", phase="write")
             logger.info("Structured line", extra={"event": "write"})
         finally:
             if handler is not None:

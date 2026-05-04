@@ -41,6 +41,39 @@ processing:
   # Enable dry run mode (no actual changes)
   dry_run: false
 
+visitor:
+  headless: true
+  storage_path: "data/browser/{site}"
+  locale: en-US
+  timezone_id: UTC
+  page_timeout_seconds: 30
+  pacing:
+    rate_limit_per_hour: 90
+  fingerprint:
+    viewport_width_range: [1260, 1380]
+    viewport_height_range: [780, 900]
+  observability:
+    mode: failures
+    trace: true
+    har: true
+    video: false
+    sessions_dir: "data/sessions"
+    har_content: omit
+  worker:
+    api_url: "http://127.0.0.1:8085"
+    api_key: "${GSV_API_KEY:-}"
+    lease_ttl_seconds: 120
+    heartbeat_interval_seconds: 30
+
+sites:
+  example:
+    storage_path: "data/browser/example"
+    locale: en-US
+    timezone_id: UTC
+    page_timeout_seconds: 30
+    allowed_host_globs:
+      - "**/*.example.com/**"
+
 observability:
   # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
   log_level: INFO

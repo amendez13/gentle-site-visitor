@@ -225,7 +225,7 @@ Tracked in [ARCHITECTURE.md §14](ARCHITECTURE.md#14-open-questions). When a sli
 | 3. Proxy support | Out of scope (v0) |
 | 4. Schedule source of truth (YAML vs DB) | S8 (YAML for v0) |
 | 5. Manifest schema evolution | S5 |
-| 6. Test strategy for non-deterministic primitives | S1 (RNG seam) + S8 |
+| 6. Test strategy for non-deterministic primitives | S1 resolved for browser primitives (seeded RNG seam); S8 keeps planner parity |
 | 7. Per-app KV store | Out of scope (v0); revisit after S9 |
 
 ---

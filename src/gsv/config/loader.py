@@ -1,0 +1,194 @@
+"""YAML configuration loader for Gentle Site Visitor."""
+
+from __future__ import annotations
+
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from gsv.config.model import (
+    FingerprintConfig,
+    IntRange,
+    ObservabilityConfig,
+    PacingConfig,
+    SiteConfig,
+    VisitorConfig,
+    WorkerConfig,
+)
+
+
+class ConfigError(ValueError):
+    """Raised when configuration cannot be parsed safely."""
+
+
+_ENV_PATTERN = re.compile(r"\$\{([^}:]+)(?::-(.*?))?\}")
+_VALID_OBSERVABILITY_MODES = {"off", "failures", "always"}
+_VALID_HAR_CONTENT = {"omit", "embed"}
+
+
+def load_config(config_path: str | Path, site_name: str) -> tuple[VisitorConfig, SiteConfig]:
+    """Load visitor defaults and one resolved site configuration."""
+    path = Path(config_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {path}")
+
+    with path.open("r", encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    if not isinstance(raw, dict):
+        raise ConfigError("Top-level configuration must be a mapping")
+
+    resolved = _resolve_env_in_data(raw)
+    visitor_raw = _mapping(resolved.get("visitor", {}), "visitor")
+    sites_raw = _mapping(resolved.get("sites", {}), "sites")
+    site_raw = _mapping(sites_raw.get(site_name), f"sites.{site_name}")
+
+    visitor = _parse_visitor(visitor_raw)
+    site = _parse_site(site_name, visitor, site_raw)
+    return visitor, site
+
+
+def _resolve_env_in_data(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _resolve_env_in_data(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_resolve_env_in_data(item) for item in value]
+    if isinstance(value, str):
+        return _resolve_env_vars(value)
+    return value
+
+
+def _resolve_env_vars(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        name = match.group(1)
+        default = match.group(2)
+        if name in os.environ:
+            return os.environ[name]
+        if default is not None:
+            return default
+        raise ConfigError(f"Missing required environment variable: {name}")
+
+    return _ENV_PATTERN.sub(replace, value)
+
+
+def _parse_visitor(raw: dict[str, Any]) -> VisitorConfig:
+    defaults = VisitorConfig()
+    return VisitorConfig(
+        headless=_as_bool(raw.get("headless", defaults.headless)),
+        storage_path=_expand_path(str(raw.get("storage_path", defaults.storage_path))),
+        locale=str(raw.get("locale", defaults.locale)),
+        timezone_id=str(raw.get("timezone_id", defaults.timezone_id)),
+        page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", defaults.page_timeout_seconds))),
+        pacing=_parse_pacing(raw.get("pacing")),
+        fingerprint=_parse_fingerprint(raw.get("fingerprint")),
+        observability=_parse_observability(raw.get("observability")),
+        worker=_parse_worker(raw.get("worker")),
+    )
+
+
+def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> SiteConfig:
+    storage_path = _expand_path(str(raw.get("storage_path", visitor.storage_path))).format(site=site_name)
+    allowed_host_globs = raw.get("allowed_host_globs", [])
+    if allowed_host_globs is None:
+        allowed_host_globs = []
+    if not isinstance(allowed_host_globs, list) or not all(isinstance(item, str) for item in allowed_host_globs):
+        raise ConfigError(f"sites.{site_name}.allowed_host_globs must be a list of strings")
+    return SiteConfig(
+        name=site_name,
+        storage_path=storage_path,
+        locale=str(raw.get("locale", visitor.locale)),
+        timezone_id=str(raw.get("timezone_id", visitor.timezone_id)),
+        page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", visitor.page_timeout_seconds))),
+        allowed_host_globs=list(allowed_host_globs),
+    )
+
+
+def _parse_pacing(raw: Any) -> PacingConfig:
+    defaults = PacingConfig()
+    data = _mapping(raw, "visitor.pacing", allow_none=True)
+    return PacingConfig(
+        rate_limit_per_hour=max(1, int(data.get("rate_limit_per_hour", defaults.rate_limit_per_hour))),
+    )
+
+
+def _parse_fingerprint(raw: Any) -> FingerprintConfig:
+    defaults = FingerprintConfig()
+    data = _mapping(raw, "visitor.fingerprint", allow_none=True)
+    return FingerprintConfig(
+        viewport_width_range=_parse_int_range(data.get("viewport_width_range"), defaults.viewport_width_range),
+        viewport_height_range=_parse_int_range(data.get("viewport_height_range"), defaults.viewport_height_range),
+    )
+
+
+def _parse_observability(raw: Any) -> ObservabilityConfig:
+    defaults = ObservabilityConfig()
+    data = _mapping(raw, "visitor.observability", allow_none=True)
+    mode = str(data.get("mode", defaults.mode))
+    if mode not in _VALID_OBSERVABILITY_MODES:
+        raise ConfigError("visitor.observability.mode must be one of: off, failures, always")
+    har_content = str(data.get("har_content", defaults.har_content))
+    if har_content not in _VALID_HAR_CONTENT:
+        raise ConfigError("visitor.observability.har_content must be one of: omit, embed")
+    return ObservabilityConfig(
+        mode=mode,
+        trace=_as_bool(data.get("trace", defaults.trace)),
+        har=_as_bool(data.get("har", defaults.har)),
+        video=_as_bool(data.get("video", defaults.video)),
+        sessions_dir=_expand_path(str(data.get("sessions_dir", defaults.sessions_dir))),
+        har_content=har_content,
+    )
+
+
+def _parse_worker(raw: Any) -> WorkerConfig:
+    defaults = WorkerConfig()
+    data = _mapping(raw, "visitor.worker", allow_none=True)
+    return WorkerConfig(
+        api_url=str(data.get("api_url", defaults.api_url)),
+        api_key=str(data.get("api_key", defaults.api_key)),
+        lease_ttl_seconds=max(1, int(data.get("lease_ttl_seconds", defaults.lease_ttl_seconds))),
+        heartbeat_interval_seconds=max(1, int(data.get("heartbeat_interval_seconds", defaults.heartbeat_interval_seconds))),
+    )
+
+
+def _parse_int_range(value: Any, default: IntRange) -> IntRange:
+    if value is None:
+        return default
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ConfigError("Range values must be two-item lists")
+    low = int(value[0])
+    high = int(value[1])
+    if low <= 0 or high <= 0:
+        raise ConfigError("Range values must be positive")
+    if low > high:
+        low, high = high, low
+    return (low, high)
+
+
+def _mapping(value: Any, name: str, *, allow_none: bool = False) -> dict[str, Any]:
+    if value is None and allow_none:
+        return {}
+    if not isinstance(value, dict):
+        raise ConfigError(f"{name} must be a mapping")
+    return value
+
+
+def _expand_path(value: str) -> str:
+    if value == "":
+        return ""
+    return str(Path(value).expanduser())
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        clean = value.strip().lower()
+        if clean in {"1", "true", "yes", "on"}:
+            return True
+        if clean in {"0", "false", "no", "off", ""}:
+            return False
+    return bool(value)

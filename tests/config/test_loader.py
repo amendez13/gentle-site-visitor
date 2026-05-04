@@ -1,0 +1,227 @@
+"""Tests for the S1 YAML configuration loader."""
+
+from __future__ import annotations
+
+import pytest
+
+from gsv.config import ConfigError, load_config
+
+
+def test_load_config_merges_visitor_defaults_and_site_overrides(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Site fields override visitor defaults while nested visitor config remains global."""
+    monkeypatch.setenv("GSV_API_KEY", "secret")
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  headless: false
+  storage_path: "~/gsv/{site}"
+  locale: en-GB
+  timezone_id: Europe/London
+  page_timeout_seconds: 45
+  pacing:
+    rate_limit_per_hour: 12
+  fingerprint:
+    viewport_width_range: [1000, 1100]
+    viewport_height_range: [700, 710]
+  observability:
+    mode: always
+    trace: false
+    har: true
+    video: true
+    sessions_dir: "~/gsv-sessions"
+    har_content: embed
+  worker:
+    api_url: http://127.0.0.1:8085
+    api_key: ${GSV_API_KEY}
+sites:
+  example:
+    storage_path: "~/custom-example"
+    locale: fr-FR
+    allowed_host_globs:
+      - "**/*.example.test/**"
+""",
+        encoding="utf-8",
+    )
+
+    visitor, site = load_config(config_path, "example")
+
+    assert visitor.headless is False
+    assert visitor.pacing.rate_limit_per_hour == 12
+    assert visitor.fingerprint.viewport_width_range == (1000, 1100)
+    assert visitor.observability.mode == "always"
+    assert visitor.observability.trace is False
+    assert visitor.observability.video is True
+    assert visitor.observability.har_content == "embed"
+    assert visitor.worker.api_key == "secret"
+    assert site.name == "example"
+    assert site.locale == "fr-FR"
+    assert site.timezone_id == "Europe/London"
+    assert site.page_timeout_seconds == 45
+    assert site.allowed_host_globs == ["**/*.example.test/**"]
+    assert site.storage_path.endswith("custom-example")
+
+
+def test_load_config_defaults_site_storage_template(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """A site can inherit visitor storage_path with the site placeholder resolved."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  storage_path: "data/{site}/state"
+sites:
+  docs: {}
+""",
+        encoding="utf-8",
+    )
+
+    visitor, site = load_config(config_path, "docs")
+
+    assert visitor.locale == "en-US"
+    assert site.storage_path == "data/docs/state"
+    assert site.storage_dir is not None
+
+
+def test_load_config_missing_required_env_raises(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Plain ${VAR} references are required."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  worker:
+    api_key: ${MISSING_GSV_KEY}
+sites:
+  example: {}
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="MISSING_GSV_KEY"):
+        load_config(config_path, "example")
+
+
+def test_load_config_optional_env_default(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """${VAR:-default} references use the fallback when the environment is absent."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  worker:
+    api_key: ${OPTIONAL_GSV_KEY:-}
+sites:
+  example: {}
+""",
+        encoding="utf-8",
+    )
+
+    visitor, _site = load_config(config_path, "example")
+
+    assert visitor.worker.api_key == ""
+
+
+def test_load_config_rejects_missing_site(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The requested site must exist under sites."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("sites: {}\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="sites.example"):
+        load_config(config_path, "example")
+
+
+def test_load_config_rejects_bad_allowed_hosts(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Allowed host filters must stay as a selector-free list of strings."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+sites:
+  example:
+    allowed_host_globs: "*.example.test"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="allowed_host_globs"):
+        load_config(config_path, "example")
+
+
+def test_load_config_accepts_null_allowed_hosts_and_disabled_storage(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Optional site host filters and storage can be disabled explicitly."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  storage_path: ""
+sites:
+  example:
+    allowed_host_globs:
+""",
+        encoding="utf-8",
+    )
+
+    _visitor, site = load_config(config_path, "example")
+
+    assert site.allowed_host_globs == []
+    assert site.storage_path == ""
+    assert site.storage_dir is None
+
+
+def test_load_config_rejects_missing_file(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """A missing YAML path is reported clearly."""
+    with pytest.raises(FileNotFoundError):
+        load_config(tmp_path / "missing.yaml", "example")
+
+
+def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The top-level YAML document must be a mapping."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("- not-a-mapping\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="Top-level"):
+        load_config(config_path, "example")
+
+
+@pytest.mark.parametrize(
+    ("snippet", "message"),
+    [
+        ("visitor:\n  observability:\n    mode: noisy\nsites:\n  example: {}\n", "mode"),
+        ("visitor:\n  observability:\n    har_content: all\nsites:\n  example: {}\n", "har_content"),
+        ("visitor:\n  fingerprint:\n    viewport_width_range: [100]\nsites:\n  example: {}\n", "Range values"),
+        ("visitor:\n  fingerprint:\n    viewport_width_range: [0, 100]\nsites:\n  example: {}\n", "positive"),
+        ("visitor:\n  pacing: bad\nsites:\n  example: {}\n", "visitor.pacing"),
+    ],
+)
+def test_load_config_rejects_invalid_nested_values(
+    tmp_path,  # type: ignore[no-untyped-def]
+    snippet: str,
+    message: str,
+) -> None:
+    """Nested config sections validate shape and enumerated values."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(snippet, encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=message):
+        load_config(config_path, "example")
+
+
+def test_load_config_normalizes_reversed_ranges_and_bool_strings(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Ranges are normalized and common string booleans are parsed."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  headless: "yes"
+  fingerprint:
+    viewport_width_range: [1100, 1000]
+  observability:
+    trace: "off"
+sites:
+  example: {}
+""",
+        encoding="utf-8",
+    )
+
+    visitor, _site = load_config(config_path, "example")
+
+    assert visitor.headless is True
+    assert visitor.observability.trace is False
+    assert visitor.fingerprint.viewport_width_range == (1000, 1100)
