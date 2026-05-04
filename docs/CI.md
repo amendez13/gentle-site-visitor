@@ -17,7 +17,7 @@ The CI workflow runs on pushes and pull requests targeting `main` and `develop`.
   - `self_hosted_linux`
   - `self_hosted_linux_arm64`
 - Downstream jobs use `runs-on: ${{ fromJSON(needs.resolve-runner.outputs.runner) }}`.
-- `resolve-runner` also emits `container.options` for self-hosted runs so containerized jobs keep workspace file ownership compatible with the runner user.
+- `resolve-runner` also emits `container.options`; GitHub-hosted runs use root so Playwright can install browser system dependencies, while self-hosted runs keep workspace file ownership compatible with the runner user.
 
 ### Smart Skip Logic
 
@@ -39,7 +39,7 @@ All CI jobs except `resolve-runner` execute in the same image:
 - `safe.directory` configured in every container job
 - no per-job `actions/setup-python`
 - Python matrix jobs call preinstalled interpreters directly (`python3.10`, `python3.11`, `python3.12`)
-- coverage and test jobs install the checked-out `requirements-dev.txt` before running pytest, so dependency changes in a PR are tested even before the shared image is rebuilt
+- coverage and test jobs install the checked-out `requirements-dev.txt`, then install Playwright Chromium with its system dependencies before running pytest, so dependency changes in a PR are tested even before the shared image is rebuilt
 
 ### Failure Short-Circuiting
 

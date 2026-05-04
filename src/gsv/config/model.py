@@ -13,6 +13,7 @@ class PacingConfig:
     """Low-level pacing settings consumed by the browser layer."""
 
     rate_limit_per_hour: int = 90
+    post_login_warmup: bool = True
 
 
 @dataclass(frozen=True)
@@ -54,10 +55,26 @@ class VisitorConfig:
     locale: str = "en-US"
     timezone_id: str = "UTC"
     page_timeout_seconds: int = 30
+    manual_verification_timeout_seconds: int = 300
     pacing: PacingConfig = field(default_factory=PacingConfig)
     fingerprint: FingerprintConfig = field(default_factory=FingerprintConfig)
     observability: ObservabilityConfig = field(default_factory=ObservabilityConfig)
     worker: WorkerConfig = field(default_factory=WorkerConfig)
+
+
+@dataclass(frozen=True)
+class SiteAuthConfig:
+    """Raw per-site authentication settings from YAML."""
+
+    login_url: str = ""
+    auth_marker_url: str = ""
+    cookie_consent_selectors: list[str] = field(default_factory=list)
+    variant_trigger_selectors: list[str] = field(default_factory=list)
+    username_selectors: list[str] = field(default_factory=list)
+    password_selectors: list[str] = field(default_factory=list)
+    submit_selectors: list[str] = field(default_factory=list)
+    warmup_url: str | None = None
+    extra_init_scripts: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -70,6 +87,7 @@ class SiteConfig:
     timezone_id: str = "UTC"
     page_timeout_seconds: int = 30
     allowed_host_globs: list[str] = field(default_factory=list)
+    auth: SiteAuthConfig = field(default_factory=SiteAuthConfig)
 
     @property
     def storage_dir(self) -> Path | None:

@@ -58,11 +58,13 @@ Configuration is YAML, with `${ENV_VAR}` interpolation and per-site overrides:
 ```yaml
 visitor:
   headless: true
+  manual_verification_timeout_seconds: 300
   pacing:
     profile: production        # production | recon | auth | disabled
     rate_limit_per_hour: 90
     burst_cooldown_interval: 5
     burst_cooldown_range: [30.0, 90.0]
+    post_login_warmup: true
   observability:
     mode: failures             # off | failures | always
     retention_days: 14

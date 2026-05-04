@@ -50,7 +50,7 @@ Downstream jobs consume:
 - `runs-on: ${{ fromJSON(needs.resolve-runner.outputs.runner) }}`
 - `container.options` from `resolve-runner`
 
-For self-hosted runners, the template assumes the runner workspace should remain writable by a non-root user and therefore runs CI containers with an explicit UID:GID mapping.
+For GitHub-hosted runners, the template runs the CI container as root so the test jobs can install Playwright's browser system dependencies. For self-hosted runners, the template assumes the runner workspace should remain writable by a non-root user and therefore runs CI containers with an explicit UID:GID mapping; self-hosted operators should keep browser system dependencies baked into the shared CI image.
 
 ## Register A Self-Hosted Runner
 

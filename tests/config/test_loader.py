@@ -19,8 +19,10 @@ visitor:
   locale: en-GB
   timezone_id: Europe/London
   page_timeout_seconds: 45
+  manual_verification_timeout_seconds: 120
   pacing:
     rate_limit_per_hour: 12
+    post_login_warmup: false
   fingerprint:
     viewport_width_range: [1000, 1100]
     viewport_height_range: [700, 710]
@@ -40,6 +42,16 @@ sites:
     locale: fr-FR
     allowed_host_globs:
       - "**/*.example.test/**"
+    auth:
+      login_url: "https://example.test/login"
+      auth_marker_url: "https://example.test/home"
+      cookie_consent_selectors: ["#accept"]
+      variant_trigger_selectors: ["#other"]
+      username_selectors: ["#username", "input[name='email']"]
+      password_selectors: ["#password"]
+      submit_selectors: ["#submit"]
+      warmup_url: "https://example.test/home"
+      extra_init_scripts: ["window.gsv = true;"]
 """,
         encoding="utf-8",
     )
@@ -48,6 +60,8 @@ sites:
 
     assert visitor.headless is False
     assert visitor.pacing.rate_limit_per_hour == 12
+    assert visitor.pacing.post_login_warmup is False
+    assert visitor.manual_verification_timeout_seconds == 120
     assert visitor.fingerprint.viewport_width_range == (1000, 1100)
     assert visitor.observability.mode == "always"
     assert visitor.observability.trace is False
@@ -60,6 +74,10 @@ sites:
     assert site.page_timeout_seconds == 45
     assert site.allowed_host_globs == ["**/*.example.test/**"]
     assert site.storage_path.endswith("custom-example")
+    assert site.auth.login_url == "https://example.test/login"
+    assert site.auth.auth_marker_url == "https://example.test/home"
+    assert site.auth.username_selectors == ["#username", "input[name='email']"]
+    assert site.auth.extra_init_scripts == ["window.gsv = true;"]
 
 
 def test_load_config_defaults_site_storage_template(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -189,6 +207,10 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
         ("visitor:\n  fingerprint:\n    viewport_width_range: [0, 100]\nsites:\n  example: {}\n", "positive"),
         ("visitor:\n  pacing: bad\nsites:\n  example: {}\n", "visitor.pacing"),
         ("visitor:\n  headless: flase\nsites:\n  example: {}\n", "visitor.headless"),
+        (
+            "sites:\n  example:\n    auth:\n      username_selectors: '#username'\n",
+            "sites.example.auth.username_selectors",
+        ),
     ],
 )
 def test_load_config_rejects_invalid_nested_values(
