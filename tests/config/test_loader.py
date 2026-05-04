@@ -188,6 +188,7 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
         ("visitor:\n  fingerprint:\n    viewport_width_range: [100]\nsites:\n  example: {}\n", "Range values"),
         ("visitor:\n  fingerprint:\n    viewport_width_range: [0, 100]\nsites:\n  example: {}\n", "positive"),
         ("visitor:\n  pacing: bad\nsites:\n  example: {}\n", "visitor.pacing"),
+        ("visitor:\n  headless: flase\nsites:\n  example: {}\n", "visitor.headless"),
     ],
 )
 def test_load_config_rejects_invalid_nested_values(
@@ -225,3 +226,22 @@ sites:
     assert visitor.headless is True
     assert visitor.observability.trace is False
     assert visitor.fingerprint.viewport_width_range == (1000, 1100)
+
+
+def test_load_config_preserves_empty_api_key_for_null_yaml_value(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """A nullable API key uses the empty default instead of the literal string None."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  worker:
+    api_key:
+sites:
+  example: {}
+""",
+        encoding="utf-8",
+    )
+
+    visitor, _site = load_config(config_path, "example")
+
+    assert visitor.worker.api_key == ""

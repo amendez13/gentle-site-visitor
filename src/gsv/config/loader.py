@@ -76,10 +76,10 @@ def _resolve_env_vars(value: str) -> str:
 def _parse_visitor(raw: dict[str, Any]) -> VisitorConfig:
     defaults = VisitorConfig()
     return VisitorConfig(
-        headless=_as_bool(raw.get("headless", defaults.headless)),
-        storage_path=_expand_path(str(raw.get("storage_path", defaults.storage_path))),
-        locale=str(raw.get("locale", defaults.locale)),
-        timezone_id=str(raw.get("timezone_id", defaults.timezone_id)),
+        headless=_as_bool(_with_default(raw.get("headless"), defaults.headless), "visitor.headless"),
+        storage_path=_expand_path(_as_str(raw.get("storage_path"), defaults.storage_path)),
+        locale=_as_str(raw.get("locale"), defaults.locale),
+        timezone_id=_as_str(raw.get("timezone_id"), defaults.timezone_id),
         page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", defaults.page_timeout_seconds))),
         pacing=_parse_pacing(raw.get("pacing")),
         fingerprint=_parse_fingerprint(raw.get("fingerprint")),
@@ -89,7 +89,7 @@ def _parse_visitor(raw: dict[str, Any]) -> VisitorConfig:
 
 
 def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> SiteConfig:
-    storage_path = _expand_path(str(raw.get("storage_path", visitor.storage_path))).format(site=site_name)
+    storage_path = _expand_path(_as_str(raw.get("storage_path"), visitor.storage_path)).format(site=site_name)
     allowed_host_globs = raw.get("allowed_host_globs", [])
     if allowed_host_globs is None:
         allowed_host_globs = []
@@ -98,8 +98,8 @@ def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> 
     return SiteConfig(
         name=site_name,
         storage_path=storage_path,
-        locale=str(raw.get("locale", visitor.locale)),
-        timezone_id=str(raw.get("timezone_id", visitor.timezone_id)),
+        locale=_as_str(raw.get("locale"), visitor.locale),
+        timezone_id=_as_str(raw.get("timezone_id"), visitor.timezone_id),
         page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", visitor.page_timeout_seconds))),
         allowed_host_globs=list(allowed_host_globs),
     )
@@ -125,18 +125,18 @@ def _parse_fingerprint(raw: Any) -> FingerprintConfig:
 def _parse_observability(raw: Any) -> ObservabilityConfig:
     defaults = ObservabilityConfig()
     data = _mapping(raw, "visitor.observability", allow_none=True)
-    mode = str(data.get("mode", defaults.mode))
+    mode = _as_str(data.get("mode"), defaults.mode)
     if mode not in _VALID_OBSERVABILITY_MODES:
         raise ConfigError("visitor.observability.mode must be one of: off, failures, always")
-    har_content = str(data.get("har_content", defaults.har_content))
+    har_content = _as_str(data.get("har_content"), defaults.har_content)
     if har_content not in _VALID_HAR_CONTENT:
         raise ConfigError("visitor.observability.har_content must be one of: omit, embed")
     return ObservabilityConfig(
         mode=mode,
-        trace=_as_bool(data.get("trace", defaults.trace)),
-        har=_as_bool(data.get("har", defaults.har)),
-        video=_as_bool(data.get("video", defaults.video)),
-        sessions_dir=_expand_path(str(data.get("sessions_dir", defaults.sessions_dir))),
+        trace=_as_bool(_with_default(data.get("trace"), defaults.trace), "visitor.observability.trace"),
+        har=_as_bool(_with_default(data.get("har"), defaults.har), "visitor.observability.har"),
+        video=_as_bool(_with_default(data.get("video"), defaults.video), "visitor.observability.video"),
+        sessions_dir=_expand_path(_as_str(data.get("sessions_dir"), defaults.sessions_dir)),
         har_content=har_content,
     )
 
@@ -145,8 +145,8 @@ def _parse_worker(raw: Any) -> WorkerConfig:
     defaults = WorkerConfig()
     data = _mapping(raw, "visitor.worker", allow_none=True)
     return WorkerConfig(
-        api_url=str(data.get("api_url", defaults.api_url)),
-        api_key=str(data.get("api_key", defaults.api_key)),
+        api_url=_as_str(data.get("api_url"), defaults.api_url),
+        api_key=_as_str(data.get("api_key"), defaults.api_key),
         lease_ttl_seconds=max(1, int(data.get("lease_ttl_seconds", defaults.lease_ttl_seconds))),
         heartbeat_interval_seconds=max(1, int(data.get("heartbeat_interval_seconds", defaults.heartbeat_interval_seconds))),
     )
@@ -180,7 +180,17 @@ def _expand_path(value: str) -> str:
     return str(Path(value).expanduser())
 
 
-def _as_bool(value: Any) -> bool:
+def _with_default(value: Any, default: Any) -> Any:
+    return default if value is None else value
+
+
+def _as_str(value: Any, default: str) -> str:
+    if value is None:
+        return default
+    return str(value)
+
+
+def _as_bool(value: Any, name: str) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
@@ -191,4 +201,4 @@ def _as_bool(value: Any) -> bool:
             return True
         if clean in {"0", "false", "no", "off", ""}:
             return False
-    return bool(value)
+    raise ConfigError(f"{name} must be a boolean")
