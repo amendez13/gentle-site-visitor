@@ -91,7 +91,12 @@ class FakeBrowser:
         self.closed = True
 
 
-def make_session(page: FakePage, adapter: SiteAuthAdapter | None = None) -> tuple[Session, FakeBrowser]:
+def make_session(
+    page: FakePage,
+    adapter: SiteAuthAdapter | None = None,
+    *,
+    completion_timeout_ms: int = 1,
+) -> tuple[Session, FakeBrowser]:
     """Create a runner backed by fake browser primitives."""
     browser = FakeBrowser(page)
     session = Session(
@@ -107,7 +112,7 @@ def make_session(page: FakePage, adapter: SiteAuthAdapter | None = None) -> tupl
         VisitorConfig(headless=True, manual_verification_timeout_seconds=1),
         auth_delay_range=(0, 0),
         form_wait_timeout_ms=1,
-        completion_timeout_ms=1,
+        completion_timeout_ms=completion_timeout_ms,
     )
     return session, browser
 
@@ -231,6 +236,38 @@ async def test_submit_failure_is_reported(monkeypatch) -> None:  # type: ignore[
     logged_in = await session.login(Credentials("u", "p"))
 
     assert logged_in is False
+
+
+@pytest.mark.asyncio
+async def test_wait_for_login_completion_respects_timeout_before_still_on_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Login URL failures wait for the configured completion timeout."""
+    session, _browser = make_session(FakePage(), completion_timeout_ms=15000)
+    page = await session._ensure_page()
+    page.url = "https://example.test/login"
+    now = 0.0
+    reasons: list[str] = []
+
+    def fake_monotonic() -> float:
+        return now
+
+    async def fake_sleep(seconds: float) -> None:
+        nonlocal now
+        now += seconds
+
+    async def fake_log_login_diagnostics(_page: Any, _adapter: SiteAuthAdapter, reason: str) -> None:
+        reasons.append(reason)
+
+    monkeypatch.setattr("gsv.session.runner.time.monotonic", fake_monotonic)
+    monkeypatch.setattr("gsv.session.runner.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("gsv.session.runner.log_login_diagnostics", fake_log_login_diagnostics)
+
+    completed = await session._wait_for_login_completion(page)
+
+    assert completed is False
+    assert now >= 15.0
+    assert reasons == ["still_on_login"]
 
 
 @pytest.mark.asyncio

@@ -190,19 +190,16 @@ class Session:
 
     async def _wait_for_login_completion(self, page: Any) -> bool:
         deadline = time.monotonic() + (self._completion_timeout_ms / 1000.0)
-        login_url_seen_after = time.monotonic() + 0.25
         while time.monotonic() < deadline:
             url = str(page.url)
             if self.adapter.is_authenticated_url(url):
                 return True
             if self.adapter.is_challenge_url(url):
                 return bool(await self.challenge_policy.handle(page, self.adapter.is_authenticated_url))
-            if self._is_login_url(url) and time.monotonic() >= login_url_seen_after:
-                await log_login_diagnostics(page, self.adapter, "still_on_login")
-                return False
             await asyncio.sleep(0.05)
 
-        await log_login_diagnostics(page, self.adapter, "completion_timeout")
+        reason = "still_on_login" if self._is_login_url(str(page.url)) else "completion_timeout"
+        await log_login_diagnostics(page, self.adapter, reason)
         return False
 
     async def _wait_for_any_selector(self, page: Any, selectors: tuple[str, ...]) -> bool:

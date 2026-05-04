@@ -16,7 +16,10 @@ def test_adapter_derives_predicate_and_wait_glob() -> None:
     )
 
     assert adapter.is_authenticated_url("https://example.test/home?x=1")
+    assert adapter.is_authenticated_url("https://example.test/home/settings")
     assert not adapter.is_authenticated_url("https://example.test/login")
+    assert not adapter.is_authenticated_url("https://other.example/home")
+    assert not adapter.is_authenticated_url("https://example.test/homepage")
     assert adapter.auth_marker_wait_glob == "https://example.test/home**"
 
 

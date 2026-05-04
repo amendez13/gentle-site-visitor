@@ -22,10 +22,13 @@ def _default_auth_marker_predicate(auth_marker_url: str) -> UrlPredicate:
     marker_path = marker.path or "/"
 
     def matches(url: str) -> bool:
-        path = urlparse(url).path or "/"
+        current = urlparse(url)
+        path = current.path or "/"
+        if current.scheme != marker.scheme or current.netloc != marker.netloc:
+            return False
         if marker_path == "/":
             return path == "/"
-        return marker_path in path
+        return path == marker_path or path.startswith(f"{marker_path.rstrip('/')}/")
 
     return matches
 
