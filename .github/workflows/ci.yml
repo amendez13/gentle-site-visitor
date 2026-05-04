@@ -76,7 +76,7 @@ jobs:
               ;;
           esac
 
-          echo 'ci_image=ghcr.io/alex3m6/gentle-site-visitor-ci:latest' >> "$GITHUB_OUTPUT"
+          echo 'ci_image=ghcr.io/${{ github.repository_owner }}/gentle-site-visitor-ci:latest' >> "$GITHUB_OUTPUT"
           echo "Resolved runner target: $TARGET"
 
       - id: classify

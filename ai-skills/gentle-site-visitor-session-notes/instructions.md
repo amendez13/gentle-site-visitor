@@ -1,6 +1,6 @@
-# Session Notes
+# gentle-site-visitor Session Notes
 
-Use this skill when creating or updating daily session notes.
+Use this skill when creating or updating gentle-site-visitor daily session notes.
 
 Read first:
 - `AGENTS.md`
