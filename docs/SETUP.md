@@ -17,7 +17,7 @@ This guide walks you through setting up gentle-site-visitor for development or u
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/amendez13/gentle-site-visitor.git
+git clone https://github.com/<repository-owner>/gentle-site-visitor.git
 cd gentle-site-visitor
 ```
 

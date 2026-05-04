@@ -26,7 +26,7 @@ The Docker CI image is the contract. The runner should be treated as a thin host
 
 - run GitHub Actions jobs
 - run Linux containers
-- pull `ghcr.io/amendez13/gentle-site-visitor-ci:latest`
+- pull `ghcr.io/<repository-owner>/gentle-site-visitor-ci:latest`
 
 That means:
 
@@ -58,7 +58,7 @@ For self-hosted runners, the template assumes the runner workspace should remain
 2. Create a GitHub runner registration token for the repository.
 3. Copy and adapt `infra/home-worker/ci_runner_setup.yml` for your environment.
 4. Keep the runner labels aligned with `.github/workflows/ci.yml`.
-5. Optionally pre-pull `ghcr.io/amendez13/gentle-site-visitor-ci:latest` after provisioning.
+5. Optionally pre-pull `ghcr.io/<repository-owner>/gentle-site-visitor-ci:latest` after provisioning.
 
 Suggested baseline labels:
 
@@ -86,9 +86,9 @@ pip-audit --requirement requirements.txt
 
 - install Docker Engine and confirm the runner user can access it
 - install the GitHub Actions runner binary for the host architecture
-- register the runner for `https://github.com/amendez13/gentle-site-visitor`
+- register the runner for `https://github.com/<repository-owner>/gentle-site-visitor`
 - configure the runner as a persistent service
-- verify the runner can pull `ghcr.io/amendez13/gentle-site-visitor-ci:latest`
+- verify the runner can pull `ghcr.io/<repository-owner>/gentle-site-visitor-ci:latest`
 - run a manual `workflow_dispatch` CI job against the self-hosted target
 
 ## Operational Notes
