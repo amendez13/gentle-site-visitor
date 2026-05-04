@@ -1,0 +1,7 @@
+name: gentle-site-visitor-feature-delivery
+description: Use when delivering gentle-site-visitor GitHub issues end to end through dedicated git worktree, tests, PR, CI, review, merge, and cleanup.
+codex:
+  interface:
+    display_name: gentle-site-visitor Feature Delivery
+    short_description: Implement gentle-site-visitor issues end to end in a worktree
+    default_prompt: Use $gentle-site-visitor-feature-delivery to deliver a gentle-site-visitor GitHub issue end to end.

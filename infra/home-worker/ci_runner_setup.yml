@@ -4,14 +4,16 @@
   become: true
   vars:
     github_actions_runner_version: "2.333.1"
-    github_actions_repo_url: "https://github.com/alex3m6/gentle-site-visitor"
+    github_actions_repo_owner: "{{ lookup('ansible.builtin.env', 'GITHUB_REPOSITORY_OWNER') | default('repository-owner', true) }}"
+    github_actions_repo_name: gentle-site-visitor
+    github_actions_repo_url: "https://github.com/{{ github_actions_repo_owner }}/{{ github_actions_repo_name }}"
     github_actions_runner_user: ci-runner
     github_actions_runner_group: ci-runner
     github_actions_runner_root: /opt/github-actions-runner
     github_actions_runner_labels:
       - self-hosted
       - linux
-    ci_runner_image: "ghcr.io/alex3m6/gentle-site-visitor-ci:latest"
+    ci_runner_image: "ghcr.io/{{ github_actions_repo_owner }}/{{ github_actions_repo_name }}-ci:latest"
     ci_runner_pull_image: false
 
   tasks:

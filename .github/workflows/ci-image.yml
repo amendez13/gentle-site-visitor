@@ -42,5 +42,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/alex3m6/gentle-site-visitor-ci:latest
-            ghcr.io/alex3m6/gentle-site-visitor-ci:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/gentle-site-visitor-ci:latest
+            ghcr.io/${{ github.repository_owner }}/gentle-site-visitor-ci:${{ github.sha }}
