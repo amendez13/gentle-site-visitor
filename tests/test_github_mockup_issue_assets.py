@@ -7,7 +7,11 @@ import sys
 from pathlib import Path
 
 MODULE_PATH = (
-    Path(__file__).resolve().parents[1] / "ai-skills" / "feature-design" / "scripts" / "github_mockup_issue_assets.py"
+    Path(__file__).resolve().parents[1]
+    / "ai-skills"
+    / "gentle-site-visitor-feature-design"
+    / "scripts"
+    / "github_mockup_issue_assets.py"
 )
 MODULE_SPEC = importlib.util.spec_from_file_location("github_mockup_issue_assets", MODULE_PATH)
 assert MODULE_SPEC is not None

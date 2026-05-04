@@ -1,0 +1,7 @@
+name: gentle-site-visitor-session-notes
+description: Use when creating or updating gentle-site-visitor daily session notes. Optionally update a secondary summary log when the user explicitly asks for it.
+codex:
+  interface:
+    display_name: gentle-site-visitor Session Notes
+    short_description: Update gentle-site-visitor session notes
+    default_prompt: Use $gentle-site-visitor-session-notes to update today's gentle-site-visitor session notes.

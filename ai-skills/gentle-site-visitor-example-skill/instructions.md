@@ -1,6 +1,6 @@
-# Example Skill
+# gentle-site-visitor Example Skill
 
-Use this directory as the smallest starting point for a new canonical skill.
+Use this directory as the smallest starting point for a new canonical gentle-site-visitor skill.
 
 Workflow:
 1. Rename the directory and update `skill.yaml`.
