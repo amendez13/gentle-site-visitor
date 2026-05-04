@@ -1,0 +1,7 @@
+name: gentle-site-visitor-example-skill
+description: Use when you need a minimal copyable scaffold for a new gentle-site-visitor Claude/Codex skill.
+codex:
+  interface:
+    display_name: gentle-site-visitor Example Skill
+    short_description: Minimal gentle-site-visitor skill scaffold
+    default_prompt: Use $gentle-site-visitor-example-skill as a starting point for a new gentle-site-visitor skill.

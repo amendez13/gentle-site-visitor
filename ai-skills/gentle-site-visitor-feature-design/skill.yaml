@@ -1,0 +1,7 @@
+name: gentle-site-visitor-feature-design
+description: "Use when designing a gentle-site-visitor feature from a request, draft issue, references, PRs, screenshots, or code context, and the goal is an implementation-ready GitHub issue."
+codex:
+  interface:
+    display_name: gentle-site-visitor Feature Design
+    short_description: Design gentle-site-visitor features and GitHub issues
+    default_prompt: Use $gentle-site-visitor-feature-design to turn a request into an implementation-ready gentle-site-visitor GitHub issue.
