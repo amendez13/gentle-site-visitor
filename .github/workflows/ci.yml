@@ -310,6 +310,9 @@ jobs:
       - name: Mark workspace as safe for git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/repo"
 
+      - name: Install test dependencies
+        run: python3.12 -m pip install --user --disable-pip-version-check -r requirements-dev.txt
+
       - name: Run tests with coverage
         run: python3.12 -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=95
 
@@ -370,6 +373,9 @@ jobs:
 
       - name: Mark workspace as safe for git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/repo"
+
+      - name: Install test dependencies
+        run: python${{ matrix.python-version }} -m pip install --user --disable-pip-version-check -r requirements-dev.txt
 
       - name: Run unit tests
         run: python${{ matrix.python-version }} -m pytest tests/ -v

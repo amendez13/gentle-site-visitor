@@ -2,7 +2,7 @@
 
 > **Slice:** S1 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) for the slice index.
 > **Architecture refs:** [ARCHITECTURE.md §4.1](../ARCHITECTURE.md#41-browser--fingerprint-layer-gsvbrowser), [§7 module layout](../ARCHITECTURE.md#7-module-layout), [§9 anti-bot stance](../ARCHITECTURE.md#9-anti-bot-stance-in-depth).
-> **Status:** Not started.
+> **Status:** Implemented in the S1 browser-layer branch.
 
 ---
 
@@ -184,9 +184,9 @@ If a CE method falls into a deferred slice, do not stub it in S1. The next slice
 
 | ID | Question | Recommendation | Resolve in |
 |---|---|---|---|
-| Q1 | `record_har_url_filter` accepts a single glob in CE. If the new `allowed_host_globs` is a list, do we pick the first or build a regex union? | Use list; HAR url filter accepts a list/regex per Playwright API. | S1 |
-| Q2 | Should primitives accept an explicit `rng: Random` argument now, or wait until tests bite? | Add the seam now (small cost); see [IMPLEMENTATION_PLAN.md §4.3](../IMPLEMENTATION_PLAN.md#43-tests). | S1 |
-| Q3 | Should `BrowserManager` own its own `RateLimiter` or accept one injected? | Own it for v0 — the limiter's `max_per_hour` is per-site. Revisit in S7 if multi-run sharing emerges. | S1 |
+| Q1 | `record_har_url_filter` accepts a single glob in CE. If the new `allowed_host_globs` is a list, do we pick the first or build a regex union? | Resolved: S1 keeps the S5-ready hook and uses the first configured host glob when HAR kwargs are requested. | S1 |
+| Q2 | Should primitives accept an explicit `rng: Random` argument now, or wait until tests bite? | Resolved: browser primitives and viewport construction accept injected `random.Random` instances. | S1 |
+| Q3 | Should `BrowserManager` own its own `RateLimiter` or accept one injected? | Resolved: `BrowserManager` owns the limiter from `visitor.pacing.rate_limit_per_hour`; S7 can revisit shared limits if needed. | S1 |
 
 ---
 

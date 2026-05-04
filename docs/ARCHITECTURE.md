@@ -756,5 +756,5 @@ To resolve before/while implementing slices:
 3. **Proxy support.** Currently expected to be the operator's network responsibility. Should the skeleton expose a proxy field for explicit dual-IP testing?
 4. **Schedule sources of truth.** YAML profiles vs database-backed profiles. CareerExplorer uses DB-backed; the skeleton ships YAML for simplicity.
 5. **Manifest evolution.** When a counter is added, do we version the schema or treat it as open-ended? Recommend: open-ended `counters: dict[str, int]` plus a stable top-level shape.
-6. **Test strategy for non-deterministic primitives.** Seeded RNG is wired through `compute_daily_plan`; the same pattern should extend to delay/dwell/jitter helpers in tests.
+6. **Test strategy for non-deterministic primitives.** Resolved in S1 for the browser layer: delay, dwell, mouse, click, typing, scroll, and viewport helpers accept an injected seeded RNG. S8 applies the same pattern to scheduling.
 7. **Per-app state.** Should the skeleton expose a small KV store under the session dir for app-defined cross-run state, or leave it to apps?
