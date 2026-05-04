@@ -209,10 +209,12 @@ async def test_public_new_page_starts_browser() -> None:
 async def test_login_missing_form_emits_failure() -> None:
     """Missing credential selectors fail before typing."""
     session, _browser = make_session(FakePage(visible_selectors=set()))
+    session._authenticated = True
 
     logged_in = await session.login(Credentials("u", "p"))
 
     assert logged_in is False
+    assert session.is_authenticated is False
 
 
 @pytest.mark.asyncio

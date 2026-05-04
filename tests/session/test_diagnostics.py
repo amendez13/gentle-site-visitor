@@ -78,6 +78,8 @@ async def test_log_login_diagnostics_tolerates_page_errors(caplog) -> None:  # t
     adapter = SiteAuthAdapter(
         auth_marker_url="https://example.test/home",
         username_selectors=("#username",),
+        password_selectors=("#password",),
+        submit_selectors=("#submit",),
     )
 
     with caplog.at_level(logging.ERROR):

@@ -99,12 +99,15 @@ class Session:
             return self._authenticated
 
         if not await self._prepare_login_page(page):
+            self._authenticated = False
             await log_login_diagnostics(page, self.adapter, "credential_form_missing")
             return False
         if not await self._fill_credentials(page, credentials):
+            self._authenticated = False
             await log_login_diagnostics(page, self.adapter, "credential_entry_failed")
             return False
         if not await self._submit_login_form(page):
+            self._authenticated = False
             await log_login_diagnostics(page, self.adapter, "submit_failed")
             return False
 

@@ -66,6 +66,9 @@ class SiteAuthAdapter:
     def __post_init__(self) -> None:
         if not self.auth_marker_url:
             raise ValueError("auth_marker_url is required")
+        credential_groups = (self.username_selectors, self.password_selectors, self.submit_selectors)
+        if any(credential_groups) and not all(credential_groups):
+            raise ValueError("username_selectors, password_selectors, and submit_selectors must be all provided or all empty")
         if self.auth_marker_predicate is None:
             object.__setattr__(self, "auth_marker_predicate", _default_auth_marker_predicate(self.auth_marker_url))
         if self.auth_marker_wait_glob is None:

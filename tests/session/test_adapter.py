@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from gsv.config import SiteAuthConfig
 from gsv.session import SiteAuthAdapter
 
@@ -64,6 +66,16 @@ def test_no_auth_adapter_does_not_require_credentials() -> None:
 
     assert adapter.requires_credentials is False
     assert adapter.login_target_url == "https://example.test/home"
+
+
+def test_partial_credential_selector_config_is_rejected() -> None:
+    """Adapters must be explicit: all credential selector groups or none."""
+    with pytest.raises(ValueError, match="username_selectors"):
+        SiteAuthAdapter(
+            auth_marker_url="https://example.test/home",
+            username_selectors=("#username",),
+            password_selectors=("#password",),
+        )
 
 
 def test_adapter_reads_extra_init_script_from_file(tmp_path) -> None:  # type: ignore[no-untyped-def]
