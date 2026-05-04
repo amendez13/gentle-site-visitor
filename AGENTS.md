@@ -45,7 +45,7 @@ For issue-driven work, follow this default sequence:
 - Additive updates to session notes may be pushed directly to `main` when:
   - the change is only a session-note update, and
   - the user explicitly requested the notes update or the agent just completed a delivery cycle the user authorized.
-- Use `ai-skills/session-notes/` as the canonical session-notes workflow.
+- Use `ai-skills/gentle-site-visitor-session-notes/` as the canonical session-notes workflow.
 
 ---
 

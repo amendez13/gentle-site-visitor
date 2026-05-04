@@ -70,12 +70,12 @@ python-project-template/
 ├── .mcp.json.example              # MCP configuration starting point
 ├── .env.example                   # Environment-variable configuration example
 ├── ai-skills/
-│   ├── example-skill/             # Minimal scaffold for new skills
-│   ├── feature-delivery/          # Starter issue-delivery skill
-│   ├── feature-design/            # Starter issue-design skill + helper assets
-│   └── session-notes/
-│       ├── skill.yaml             # Canonical manifest for the session-notes skill
-│       └── instructions.md        # Shared skill instructions for agent harnesses
+│   ├── gentle-site-visitor-example-skill/    # Minimal scaffold for new project skills
+│   ├── gentle-site-visitor-feature-delivery/ # Project-specific issue-delivery skill
+│   ├── gentle-site-visitor-feature-design/   # Project-specific issue-design skill + helper assets
+│   └── gentle-site-visitor-session-notes/
+│       ├── skill.yaml                         # Canonical manifest for the project session-notes skill
+│       └── instructions.md                    # Shared skill instructions for agent harnesses
 ├── config/
 │   └── config.example.yaml        # Configuration template
 ├── docs/
@@ -194,7 +194,7 @@ Recommended GitHub Secrets for the release pipeline:
 - **CLAUDE.md -> AGENTS.md**: Compatibility symlink so Claude and other agents read the same guidance
 - **.mcp.json.example**: Copyable MCP server configuration starter for local setup
 - **notes/**: Committed engineering session notes with daily-note path conventions
-- **ai-skills/session-notes/**: Canonical skill for creating and updating session notes
+- **ai-skills/gentle-site-visitor-session-notes/**: Canonical skill for creating and updating session notes
 
 ### AI Agent Workflows (Optional)
 
@@ -254,9 +254,10 @@ See `docs/BRANCH_PROTECTION.md` for full documentation.
 ### AI Skills
 
 The template now ships a minimal example scaffold plus starter AI skills:
-- `example-skill` for copying into new project-specific skills
-- `feature-delivery` for end-to-end issue implementation workflow
-- `feature-design` for turning rough requests into implementation-ready GitHub issues
+- `gentle-site-visitor-example-skill` for copying into new project-specific skills
+- `gentle-site-visitor-feature-delivery` for end-to-end issue implementation workflow
+- `gentle-site-visitor-feature-design` for turning rough requests into implementation-ready GitHub issues
+- `gentle-site-visitor-session-notes` for committed project session notes
 
 Deploy both to Claude and Codex with:
 
@@ -353,7 +354,7 @@ The template includes both `config/config.example.yaml` and `.env.example`.
 - Keep project-history notes in `notes/YYYY/MM/YYYY-MM-DD.md`.
 - Use `notes/README.md` as the style guide and starter template.
 - If you want the optional secondary summary-log workflow, copy `notes/.notes-config.yaml.example` to `notes/.notes-config.yaml` and update the paths.
-- If you use shared AI-skill deployment, treat `ai-skills/session-notes/` as the canonical source.
+- If you use shared AI-skill deployment, treat `ai-skills/gentle-site-visitor-session-notes/` as the canonical source.
 
 ### CI Runner Target
 

@@ -112,7 +112,7 @@ This template treats session notes as committed project history, not private scr
 - Read [notes/README.md](../notes/README.md) for the directory layout, note style, and the daily-note template.
 - Daily notes live at `notes/YYYY/MM/YYYY-MM-DD.md`.
 - If you want the optional secondary summary-log workflow, copy `notes/.notes-config.yaml.example` to `notes/.notes-config.yaml` and customize the paths for your environment.
-- The canonical skill source for note automation lives at `ai-skills/session-notes/`. If you use the shared AI-skills deployment pattern, deploy that skill to your local agent harnesses after editing it.
+- The canonical skill source for note automation lives at `ai-skills/gentle-site-visitor-session-notes/`. If you use the shared AI-skills deployment pattern, deploy that skill to your local agent harnesses after editing it.
 
 ## MCP Configuration
 
@@ -156,6 +156,10 @@ The deploy script renders:
 - Claude skills to `~/.claude/skills/<name>/skill.md`
 - Codex skills to `~/.codex/skills/<name>/SKILL.md`
 - Codex interface metadata to `~/.codex/skills/<name>/agents/openai.yaml`
+
+The shipped skill names are project-specific, for example
+`gentle-site-visitor-feature-delivery`, so this project does not overwrite
+another project's installed `feature-delivery` skill.
 
 See [AI_SKILLS.md](AI_SKILLS.md) for the canonical source layout, starter skills, and troubleshooting guidance.
 
