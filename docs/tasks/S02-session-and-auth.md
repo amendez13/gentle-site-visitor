@@ -2,7 +2,7 @@
 
 > **Slice:** S2 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.2](../ARCHITECTURE.md#42-session--auth-layer-gsvsession).
-> **Status:** Not started. **Depends on S1.**
+> **Status:** Implemented in the S2 session/auth branch. **Depends on S1.**
 
 ---
 

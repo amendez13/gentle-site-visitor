@@ -14,6 +14,7 @@ from gsv.config.model import (
     IntRange,
     ObservabilityConfig,
     PacingConfig,
+    SiteAuthConfig,
     SiteConfig,
     VisitorConfig,
     WorkerConfig,
@@ -81,6 +82,10 @@ def _parse_visitor(raw: dict[str, Any]) -> VisitorConfig:
         locale=_as_str(raw.get("locale"), defaults.locale),
         timezone_id=_as_str(raw.get("timezone_id"), defaults.timezone_id),
         page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", defaults.page_timeout_seconds))),
+        manual_verification_timeout_seconds=max(
+            1,
+            int(raw.get("manual_verification_timeout_seconds", defaults.manual_verification_timeout_seconds)),
+        ),
         pacing=_parse_pacing(raw.get("pacing")),
         fingerprint=_parse_fingerprint(raw.get("fingerprint")),
         observability=_parse_observability(raw.get("observability")),
@@ -102,6 +107,7 @@ def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> 
         timezone_id=_as_str(raw.get("timezone_id"), visitor.timezone_id),
         page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", visitor.page_timeout_seconds))),
         allowed_host_globs=list(allowed_host_globs),
+        auth=_parse_site_auth(raw.get("auth"), f"sites.{site_name}.auth"),
     )
 
 
@@ -110,6 +116,25 @@ def _parse_pacing(raw: Any) -> PacingConfig:
     data = _mapping(raw, "visitor.pacing", allow_none=True)
     return PacingConfig(
         rate_limit_per_hour=max(1, int(data.get("rate_limit_per_hour", defaults.rate_limit_per_hour))),
+        post_login_warmup=_as_bool(
+            _with_default(data.get("post_login_warmup"), defaults.post_login_warmup), "visitor.pacing.post_login_warmup"
+        ),
+    )
+
+
+def _parse_site_auth(raw: Any, name: str) -> SiteAuthConfig:
+    defaults = SiteAuthConfig()
+    data = _mapping(raw, name, allow_none=True)
+    return SiteAuthConfig(
+        login_url=_as_str(data.get("login_url"), defaults.login_url),
+        auth_marker_url=_as_str(data.get("auth_marker_url"), defaults.auth_marker_url),
+        cookie_consent_selectors=_parse_str_list(data.get("cookie_consent_selectors"), f"{name}.cookie_consent_selectors"),
+        variant_trigger_selectors=_parse_str_list(data.get("variant_trigger_selectors"), f"{name}.variant_trigger_selectors"),
+        username_selectors=_parse_str_list(data.get("username_selectors"), f"{name}.username_selectors"),
+        password_selectors=_parse_str_list(data.get("password_selectors"), f"{name}.password_selectors"),
+        submit_selectors=_parse_str_list(data.get("submit_selectors"), f"{name}.submit_selectors"),
+        warmup_url=_as_optional_str(data.get("warmup_url")),
+        extra_init_scripts=_parse_str_list(data.get("extra_init_scripts"), f"{name}.extra_init_scripts"),
     )
 
 
@@ -166,6 +191,14 @@ def _parse_int_range(value: Any, default: IntRange) -> IntRange:
     return (low, high)
 
 
+def _parse_str_list(value: Any, name: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ConfigError(f"{name} must be a list of strings")
+    return list(value)
+
+
 def _mapping(value: Any, name: str, *, allow_none: bool = False) -> dict[str, Any]:
     if value is None and allow_none:
         return {}
@@ -187,6 +220,12 @@ def _with_default(value: Any, default: Any) -> Any:
 def _as_str(value: Any, default: str) -> str:
     if value is None:
         return default
+    return str(value)
+
+
+def _as_optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
     return str(value)
 
 

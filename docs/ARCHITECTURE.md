@@ -195,9 +195,10 @@ start()
                          hit negative marker → unauthenticated
                          neither → unauthenticated (caller may retry)
 
-login(email, password):
+login(credentials):
  ├── navigate to <login_url>
  ├── short delay; if already on auth marker → save_session and return True
+ ├── no-auth adapter? navigate to <auth_marker_url>, save_session, return True
  ├── prepare_login_page():
  │     try cookie-consent click (selector list)
  │     try variant-trigger click (e.g., "use another account")
@@ -243,6 +244,10 @@ class SiteAuthAdapter:
 ```
 
 **Why selector lists, not single selectors:** sites change DOM. The `_try_type` / `_try_click` helpers iterate the list and accept the first one that's visible/hits. Diagnostics on failure log per-selector counts so a broken login can be triaged from logs alone.
+
+**Credential source:** framework YAML never stores secrets. Apps pass a `Credentials` object to `Session.login()`, with `Credentials.from_env("<PREFIX>")` as the v0 convenience path for environment-backed username/password pairs. Sites without credential selectors are treated as no-auth adapters and complete after loading the auth marker URL.
+
+**False-negative policy:** if the authentication check reaches neither the positive auth marker nor a challenge URL, the session treats the state as unauthenticated. That is safer than allowing a false positive to drive later visit steps with an expired or anonymous context.
 
 **Why warmup is opt-in and idempotent:** running it before every visit when the worker restarts often is too costly and looks suspicious. Once per process is enough.
 
