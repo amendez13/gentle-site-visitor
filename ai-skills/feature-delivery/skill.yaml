@@ -1,7 +1,0 @@
-name: feature-delivery
-description: Use when delivering GitHub issues end to end through dedicated git worktree, tests, PR, CI, review, merge, and cleanup.
-codex:
-  interface:
-    display_name: Feature Delivery
-    short_description: Implement GitHub issues end to end in a worktree
-    default_prompt: Use $feature-delivery to deliver a GitHub issue end to end.

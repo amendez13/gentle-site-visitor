@@ -1,6 +1,6 @@
-# Feature Delivery
+# gentle-site-visitor Feature Delivery
 
-Use this skill for issue-driven implementation work when the task is to deliver one or several GitHub issues end to end.
+Use this skill for issue-driven implementation work in gentle-site-visitor when the task is to deliver one or several GitHub issues end to end.
 
 Read first:
 - `AGENTS.md`
