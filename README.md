@@ -1,154 +1,208 @@
 # gentle-site-visitor
 
-![CI](https://github.com/alex3m6/gentle-site-visitor/workflows/CI/badge.svg)
+![CI](https://github.com/amendez13/gentle-site-visitor/workflows/CI/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![Coverage](https://img.shields.io/badge/coverage-95%25-green.svg)
 
-Gentle automated site visitor
+A reusable skeleton for building applications that visit websites the way a real, attentive human does: authenticated, paced, and forensically observable.
 
-## Features
+Extracted and generalized from a production LinkedIn scraper. The premise is that a real Chromium binary on a residential connection, run at human cadence, is both effective and ethical. This is a **polite-visitor toolkit**, not a stealth/evasion toolkit.
 
-- Feature 1: Description
-- Feature 2: Description
-- Feature 3: Description
+## What it does
+
+- **Authenticated sessions** — restore-or-login with cookie consent, variant detection, 2FA escalation, and idempotent post-auth warmup
+- **Human-cadence interaction** — per-character typing delays, click-position jitter, mouse pathing, randomized dwell with scroll, distraction sleeps
+- **Layered pacing** — per-action delay profiles (production/recon/auth), hourly `RateLimiter`, burst cooldowns after every N actions
+- **Declarative visit plans** — compose `Navigate`, `Click`, `Type`, `Extract`, `Branch`, `ForEach`, and more; the framework wraps every step with pacing, rate-limiting, and cancellation
+- **Scheduling** — daily activity windows, per-profile jitter, rest-period enforcement, RNG-injectable for deterministic tests
+- **Cooperative cancellation** — cancel signals arrive at named boundaries; partial results are drained and submitted
+- **Per-run observability** — `manifest.json`, optional Playwright trace + HAR + video, evidence JSONL, configurable retention
+- **Lease-based coordination** — a server-coordinated run lifecycle (claim → heartbeat → execute → submit → release); ships a reference SQLite dev server
 
 ## Quick Start
 
-### Prerequisites
-
-- Python 3.10 or higher
-- pip (Python package installer)
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/alex3m6/gentle-site-visitor.git
+git clone https://github.com/amendez13/gentle-site-visitor.git
 cd gentle-site-visitor
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements-dev.txt
+pre-commit install
+playwright install chromium
 ```
 
-2. Create and activate virtual environment:
+Run the reference app against the example site:
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-# venv\Scripts\activate   # On Windows
+gsv config validate --site example
+gsv run example --once --headed --observability=always
+gsv sessions list --site example
+gsv sessions inspect --site example --latest
 ```
 
-3. Install dependencies:
+Plan the day's scheduled slots:
+
 ```bash
-pip install -r requirements.txt
+gsv plan show --site example --date 2026-05-04 --seed 42
 ```
 
-4. Configure the application:
-```bash
-cp config/config.example.yaml config/config.yaml
-# Edit config/config.yaml with your settings
-```
-
-### Usage
+Start the worker in scheduled mode:
 
 ```bash
-# Run the application
-python -m src.main
+gsv server dev &
+gsv worker --site example --schedule
 ```
 
 ## Configuration
 
-Configuration is stored in `config/config.yaml`. See `config/config.example.yaml` for all available options.
+Configuration is YAML, with `${ENV_VAR}` interpolation and per-site overrides:
 
 ```yaml
-# Example configuration
-app:
-  debug: false
-  log_level: INFO
+visitor:
+  headless: true
+  pacing:
+    profile: production        # production | recon | auth | disabled
+    rate_limit_per_hour: 90
+    burst_cooldown_interval: 5
+    burst_cooldown_range: [30.0, 90.0]
+  observability:
+    mode: failures             # off | failures | always
+    retention_days: 14
+    max_sessions: 100
+  worker:
+    api_url: http://127.0.0.1:8085
+    api_key: ${GSV_API_KEY}
+  schedule:
+    activity_window_start: "08:00"
+    activity_window_end: "23:00"
+    rest_min_minutes: 30
+    rest_max_minutes: 90
+    profiles: []               # populated by app
 
-# Add your configuration sections here
+sites:
+  example:
+    auth:
+      login_url: "https://example.com/login"
+      auth_marker_url: "https://example.com/home"
+      username_selectors: ["#username", "input[name='email']"]
+      password_selectors: ["#password"]
+      submit_selectors: ["button[type='submit']"]
+    allowed_host_globs: ["*.example.com"]
+    locale: en-US
+    timezone_id: UTC
 ```
+
+Validate with `gsv config validate --site example`.
+
+## Architecture
+
+Six layers, each independently testable:
+
+```
+Application layer     apps/<name>/  — adapter, selectors, plan factory, config
+Visit layer           gsv.visit     — VisitPlan, VisitStep, VisitRunner, built-in steps
+Pacing & realism      gsv.pacing    — DelayProfile, BurstGovernor, ContentAwareWait
+Browser & session     gsv.browser   — BrowserManager, fingerprint, primitives
+                      gsv.session   — SiteAuthAdapter, auth state machine, warmup
+Run / lease / cancel  gsv.run       — RunController, LeaseClient, CancellationMonitor
+Scheduling / obs.     gsv.schedule  — planner, PlannedSlot
+                      gsv.observability — SessionRecorder, SessionStore, retention
+```
+
+Every visit step is wrapped by the framework:
+
+```
+cancellation_pre → rate_limit → execute → content_wait → delay → burst_tick → cancellation_post
+```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design, data model, sequence diagrams, and behavioral contract.
 
 ## Project Structure
 
 ```
 gentle-site-visitor/
-├── .github/workflows/    # CI/CD configuration
-├── .claude/              # Claude Code configuration
-├── config/               # Configuration files
-├── docs/                 # Documentation
-├── src/       # Source code
-├── tests/         # Test files
-├── AGENTS.md             # Source-of-truth agent guidance
-├── CLAUDE.md             # Symlink to AGENTS.md for Claude compatibility
-├── README.md             # This file
-├── pyproject.toml        # Tool configuration
-└── requirements.txt      # Dependencies
+├── docs/
+│   ├── ARCHITECTURE.md       # Full design document
+│   ├── IMPLEMENTATION_PLAN.md
+│   └── tasks/                # S01–S10 per-slice task documents
+├── src/gsv/
+│   ├── browser/              # BrowserManager, fingerprint, primitives, RateLimiter
+│   ├── session/              # SiteAuthAdapter, auth state machine, warmup
+│   ├── pacing/               # DelayProfile, BurstGovernor, ContentAwareWait
+│   ├── visit/                # VisitContext, VisitPlan, VisitRunner, steps
+│   ├── run/                  # RunController, LeaseClient, CancellationMonitor
+│   ├── schedule/             # Planner, PlannedSlot, SchedulingRunner
+│   ├── observability/        # SessionRecorder, SessionStore, retention
+│   ├── config/               # VisitorConfig, SiteConfig, YAML loader
+│   └── cli/                  # gsv entrypoint
+├── apps/
+│   └── example/              # Reference app (see docs/tasks/S09-reference-app.md)
+├── tests/
+├── AGENTS.md                 # Source-of-truth agent guidance
+├── CLAUDE.md                 # Symlink to AGENTS.md
+└── pyproject.toml
 ```
+
+## Building an App
+
+An app is a directory under `apps/<name>/` with five files:
+
+| File | Purpose |
+|---|---|
+| `auth.py` | Concrete `SiteAuthAdapter` instance |
+| `selectors.py` | All CSS selectors in one place |
+| `visit.py` | `build_plan()` factory returning a `VisitPlan` |
+| `extractors.py` | Pure async functions over `Page` |
+| `config.yaml` | Site overrides on top of base config |
+
+Apps never subclass framework classes; they compose via adapters and step lists. See [`apps/example/`](apps/example/) and the [app author checklist](docs/ARCHITECTURE.md#10-reference-application-contract).
 
 ## Development
 
-### Setup Development Environment
-
 ```bash
-# Install dev dependencies
+# Install dev dependencies and hooks
 pip install -r requirements-dev.txt
-
-# Install pre-commit hooks
 pre-commit install
+
+# Run tests
+pytest
+pytest --cov=src/gsv --cov-report=term-missing
+
+# Run all quality checks
+pre-commit run --all-files
+
+# Start the dev server
+gsv server dev
 ```
 
-### Running Tests
+Code quality: **Black** (formatting), **isort** (imports), **flake8** (linting), **mypy** (types), **bandit** (security), **pip-audit** (dependencies). All checks run via pre-commit hooks and CI.
+
+## Worker exit codes
+
+| Code | Meaning | Restart policy |
+|---|---|---|
+| `0` | Success | Normal |
+| `1` | Runtime error | Auto-restart |
+| `10` | Auth failure | No auto-restart — page operator |
+| `20` | Config error | No auto-restart — page operator |
+
+## Inspecting a failed run
 
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=term-missing
+gsv sessions list --outcome=failed
+gsv sessions inspect <id-prefix>   # pretty manifest
+gsv sessions open <id-prefix>      # Playwright Trace Viewer
+gsv sessions purge --older-than 14 --dry-run
 ```
-
-### Code Quality
-
-This project uses:
-- **Black** for code formatting
-- **isort** for import sorting
-- **flake8** for linting
-- **mypy** for type checking
-- **bandit** for security scanning
-- **pip-audit** for dependency vulnerability checking
-
-All checks run automatically via pre-commit hooks and CI.
 
 ## CI/CD
 
-GitHub Actions runs the following checks on every push and PR:
+GitHub Actions runs on every push and PR:
 
 1. **Lint**: Black, isort, flake8, mypy
 2. **Test**: pytest across Python 3.10, 3.11, 3.12
-3. **Coverage**: 95% minimum coverage
-4. **Security**: bandit and pip-audit
+3. **Security**: bandit and pip-audit
 
 See [docs/CI.md](docs/CI.md) for details.
-
-## Documentation
-
-- [Documentation Index](docs/INDEX.md) - All documentation
-- [Setup Guide](docs/SETUP.md) - Installation and configuration
-- [CI Documentation](docs/CI.md) - CI/CD pipeline details
-- [AI Skills](docs/AI_SKILLS.md) - Canonical AI-skill source and deploy workflow
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and linting
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
 
 ## License
 
 [Choose your license]
-
-## Acknowledgments
-
-- [Acknowledgment 1]
-- [Acknowledgment 2]
