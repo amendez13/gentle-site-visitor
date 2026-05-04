@@ -1,6 +1,6 @@
 # gentle-site-visitor
 
-![CI](https://github.com/amendez13/gentle-site-visitor/workflows/CI/badge.svg)
+[CI workflow](../../actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 
 A reusable skeleton for building applications that visit websites the way a real, attentive human does: authenticated, paced, and forensically observable.
@@ -21,7 +21,7 @@ Extracted and generalized from a production LinkedIn scraper. The premise is tha
 ## Quick Start
 
 ```bash
-git clone https://github.com/amendez13/gentle-site-visitor.git
+git clone https://github.com/<repository-owner>/gentle-site-visitor.git
 cd gentle-site-visitor
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements-dev.txt

@@ -69,6 +69,15 @@ class TestJSONFormatter:
         assert payload["event"] == "task_started"
         assert payload["queue"] == "default"
 
+    def test_context_fields_take_precedence_over_extra_fields(self) -> None:
+        set_log_context(session_id="run-1")
+        record = self._make_record()
+        record.session_id = "record-session"  # type: ignore[attr-defined]
+
+        payload = json.loads(JSONFormatter().format(record))
+
+        assert payload["session_id"] == "run-1"
+
     def test_includes_exception_details(self) -> None:
         logger = logging.getLogger("test.exc")
         try:

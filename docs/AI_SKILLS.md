@@ -2,6 +2,8 @@
 
 This template ships a canonical `ai-skills/` source tree that renders to both Claude and Codex. The source files live in the repository once, and the deploy workflow writes the harness-specific outputs into `~/.claude/skills/` and `~/.codex/skills/`.
 
+The shipped skill directories and manifests are project-specific. For example, `ai-skills/gentle-site-visitor-feature-delivery/skill.yaml` installs a skill named `gentle-site-visitor-feature-delivery`. This avoids different projects overwriting the same global `feature-delivery` skill in `~/.codex/skills` or `~/.claude/skills`.
+
 ## Why use a canonical source
 
 Using one source of truth avoids drift between platform-specific skill directories:
@@ -12,24 +14,24 @@ Using one source of truth avoids drift between platform-specific skill directori
 ## Starter skills
 
 The template ships:
-- `example-skill`
+- `gentle-site-visitor-example-skill`
   - Minimal copyable scaffold with a manifest, instructions, and a stub helper script.
-- `feature-delivery`
+- `gentle-site-visitor-feature-delivery`
   - Guides issue-driven delivery from branch creation through tests, PR, CI, review, merge, and cleanup.
-- `feature-design`
+- `gentle-site-visitor-feature-design`
   - Guides turning rough requests into implementation-ready GitHub issues and includes a helper for mockup screenshot uploads.
-- `session-notes`
+- `gentle-site-visitor-session-notes`
   - Documents the committed session-notes workflow used by this repository.
 
-Use `example-skill` as the smallest starting point and the other shipped skills as fuller reference implementations.
+Use `gentle-site-visitor-example-skill` as the smallest starting point and the other shipped skills as fuller reference implementations.
 
 ## Canonical structure
 
-Each skill lives under `ai-skills/<skill-name>/`:
+Each skill lives under `ai-skills/<project-name>-<skill-name>/`:
 
 ```text
 ai-skills/
-  <skill-name>/
+  <project-name>-<skill-name>/
     skill.yaml
     instructions.md
     references/   # optional
@@ -40,13 +42,13 @@ ai-skills/
 `skill.yaml` contains the shared manifest plus Codex UI metadata:
 
 ```yaml
-name: example-skill
-description: One-line description used by both Claude and Codex.
+name: gentle-site-visitor-example-skill
+description: One-line project-specific description used by both Claude and Codex.
 codex:
   interface:
-    display_name: Example Skill
+    display_name: gentle-site-visitor Example Skill
     short_description: Short label shown in Codex UI
-    default_prompt: Use $example-skill to do the thing.
+    default_prompt: Use $gentle-site-visitor-example-skill to do the thing.
 ```
 
 ## Deploy locally
@@ -71,13 +73,13 @@ The deploy workflow:
 
 ## Add a new skill
 
-1. Create `ai-skills/<name>/skill.yaml`.
-2. Write the skill body in `ai-skills/<name>/instructions.md`.
+1. Create `ai-skills/gentle-site-visitor-<name>/skill.yaml`.
+2. Write the skill body in `ai-skills/gentle-site-visitor-<name>/instructions.md`.
 3. Add optional `references/`, `scripts/`, or `assets/` directories when the skill needs them.
 4. Run `./scripts/deploy_ai_skills.sh`.
-5. Confirm the rendered files appear under both `~/.claude/skills/<name>/` and `~/.codex/skills/<name>/`.
+5. Confirm the rendered files appear under both `~/.claude/skills/gentle-site-visitor-<name>/` and `~/.codex/skills/gentle-site-visitor-<name>/`.
 
-Use `example-skill` for the minimal scaffold and `feature-delivery` / `feature-design` for fuller worked examples of naming, manifest structure, and guidance depth.
+Use `gentle-site-visitor-example-skill` for the minimal scaffold and `gentle-site-visitor-feature-delivery` / `gentle-site-visitor-feature-design` for fuller worked examples of naming, manifest structure, and guidance depth.
 
 ## Rendering differences
 

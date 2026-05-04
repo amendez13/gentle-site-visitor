@@ -20,7 +20,7 @@ Use it when:
 Use:
 
 ```bash
-python ai-skills/feature-design/scripts/github_mockup_issue_assets.py \
+python ai-skills/gentle-site-visitor-feature-design/scripts/github_mockup_issue_assets.py \
   --repo owner/name \
   --issue 123 \
   --mockup-url file:///absolute/path/to/mockup.html \
