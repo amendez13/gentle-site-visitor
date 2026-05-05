@@ -227,6 +227,7 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
         ("visitor:\n  fingerprint:\n    viewport_width_range: [0, 100]\nsites:\n  example: {}\n", "positive"),
         ("visitor:\n  pacing: bad\nsites:\n  example: {}\n", "visitor.pacing"),
         ("visitor:\n  pacing:\n    profiles: bad\nsites:\n  example: {}\n", "visitor.pacing.profiles"),
+        ("visitor:\n  pacing:\n    profile: missing\nsites:\n  example: {}\n", "visitor.pacing.profile"),
         (
             "visitor:\n  pacing:\n    content_wait_reaction_range: [1.0]\nsites:\n  example: {}\n",
             "Range values",

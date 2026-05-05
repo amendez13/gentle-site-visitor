@@ -115,9 +115,13 @@ def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> 
 def _parse_pacing(raw: Any) -> PacingConfig:
     defaults = PacingConfig()
     data = _mapping(raw, "visitor.pacing", allow_none=True)
+    profile = _as_str(data.get("profile"), defaults.profile)
+    profiles = _parse_delay_profiles(data.get("profiles"), defaults.profiles)
+    if profile not in profiles:
+        raise ConfigError("visitor.pacing.profile must name a configured profile")
     return PacingConfig(
-        profile=_as_str(data.get("profile"), defaults.profile),
-        profiles=_parse_delay_profiles(data.get("profiles"), defaults.profiles),
+        profile=profile,
+        profiles=profiles,
         rate_limit_per_hour=max(1, int(data.get("rate_limit_per_hour", defaults.rate_limit_per_hour))),
         burst_cooldown_interval=max(1, int(data.get("burst_cooldown_interval", defaults.burst_cooldown_interval))),
         burst_cooldown_range=_parse_float_range(data.get("burst_cooldown_range"), defaults.burst_cooldown_range),

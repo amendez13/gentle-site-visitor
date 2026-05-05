@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from gsv.browser.manager import BrowserManager
 from gsv.browser.primitives import click_with_position_jitter, human_type
-from gsv.config.model import VisitorConfig
+from gsv.config.model import VisitorConfig, default_delay_profiles
 from gsv.pacing import DelayProfile, DelayProfileSpec
 from gsv.session.adapter import SiteAuthAdapter
 from gsv.session.challenge import ChallengePolicy
@@ -240,7 +240,8 @@ class Session:
         if auth_delay_range is not None:
             spec = DelayProfileSpec(min_seconds=auth_delay_range[0], max_seconds=auth_delay_range[1])
             return DelayProfile("auth", spec, rng=self._rng)
-        return DelayProfile.from_registry("auth", self.config.pacing.profiles, rng=self._rng)
+        spec = self.config.pacing.profiles.get("auth", default_delay_profiles()["auth"])
+        return DelayProfile("auth", spec, rng=self._rng)
 
     def _is_login_url(self, url: str) -> bool:
         if not self.adapter.login_url:
