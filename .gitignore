@@ -43,6 +43,7 @@ ENV/
 
 # Logs
 *.log
+data/
 
 # Test coverage
 .coverage
