@@ -12,9 +12,16 @@ from gsv.visit.plan import StepResult, VisitPlan, VisitStep
 class VisitRunner:
     """Run visit plans while applying pacing, rate limiting, and cancellation seams."""
 
-    def __init__(self, ctx: VisitContext, *, update_recorder: bool = True) -> None:
+    def __init__(
+        self,
+        ctx: VisitContext,
+        *,
+        update_recorder: bool = True,
+        propagate_cancellation: bool = False,
+    ) -> None:
         self.ctx = ctx
         self.update_recorder = update_recorder
+        self.propagate_cancellation = propagate_cancellation
 
     async def run(self, plan: VisitPlan) -> VisitResult:
         """Run a plan and return the aggregate result."""
@@ -24,6 +31,8 @@ class VisitRunner:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            if self.propagate_cancellation and self._looks_like_cancellation(exc):
+                raise
             result = VisitResult(
                 outcome="cancelled" if self._looks_like_cancellation(exc) else "failed",
                 error=str(exc),

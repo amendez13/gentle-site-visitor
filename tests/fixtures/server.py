@@ -42,8 +42,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             action = "/login?challenge=1" if parse_qs(route.query).get("challenge") else "/login"
             self._send_login_form(action=action)
             return
-        self._send_html(
-            """
+        self._send_html("""
             <html>
               <body>
                 <form>
@@ -52,8 +51,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                 </form>
               </body>
             </html>
-            """
-        )
+            """)
 
     def do_POST(self) -> None:  # noqa: N802
         """Handle fixture login form submissions."""
@@ -90,8 +88,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
     def _send_login_form(self, *, action: str = "/login", error: bool = False) -> None:
         error_html = "<p id='login-error'>invalid</p>" if error else ""
-        self._send_html(
-            f"""
+        self._send_html(f"""
             <html>
               <head><title>Login</title></head>
               <body>
@@ -106,8 +103,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                 </form>
               </body>
             </html>
-            """
-        )
+            """)
 
     def _send_redirect(self, location: str, *, headers: dict[str, str] | None = None) -> None:
         payload = b""

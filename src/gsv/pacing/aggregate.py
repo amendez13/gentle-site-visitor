@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from gsv.browser.rate_limit import RateLimiter
@@ -28,6 +29,7 @@ def build_pacing(
     rate_limiter: RateLimiter,
     *,
     rng: random.Random | None = None,
+    on_pre_cooldown: Callable[[str], Awaitable[None]] | None = None,
 ) -> Pacing:
     """Construct pacing primitives from resolved config and an injected rate limiter."""
     del site
@@ -38,6 +40,7 @@ def build_pacing(
             interval=visitor.pacing.burst_cooldown_interval,
             cooldown_range=visitor.pacing.burst_cooldown_range,
             rng=sampler,
+            on_pre_cooldown=on_pre_cooldown,
         ),
         content_wait=ContentAwareWait(
             timeout_ms=visitor.pacing.content_wait_timeout_ms,

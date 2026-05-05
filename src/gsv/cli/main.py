@@ -33,14 +33,16 @@ def cli(ctx: click.Context, config_path: Path, site: str | None, verbose: int) -
 
 
 def register_subcommands(group: click.Group) -> None:
-    """Register all S6 subcommands through module-local factories."""
+    """Register all subcommands through module-local factories."""
     from gsv.cli import config as config_command
-    from gsv.cli import plan, run, sessions
+    from gsv.cli import plan, run, server, sessions, worker
 
     config_command.register(group)
     plan.register(group)
     run.register(group)
+    server.register(group)
     sessions.register(group)
+    worker.register(group)
 
 
 register_subcommands(cli)

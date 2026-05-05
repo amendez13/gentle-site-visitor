@@ -2,7 +2,7 @@
 
 > **Slice:** S7 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.5](../ARCHITECTURE.md#45-run--lease--cancel-layer-gsvrun), [§5.4 run/lease data model](../ARCHITECTURE.md#54-run--lease).
-> **Status:** Not started. **Depends on S2, S4.**
+> **Status:** Implemented in PR for issue #17. **Depends on S2, S4.**
 
 ---
 
@@ -293,13 +293,13 @@ def dev_command(port, db): ...
 
 ## 5. Acceptance criteria
 
-- [ ] `pytest tests/run tests/server tests/integration/test_worker_endtoend.py` is green; coverage on `gsv.run` ≥ 90%.
-- [ ] `RunCancellationRequested` carries `partials` and is raised from `CancellationMonitor.check()` after a server says cancel.
-- [ ] Heartbeat backoff exactly matches `(5, 15, 30)` seconds; reregister fires on `lease_expired`/`lease_not_found`.
-- [ ] Worker exits 10 on auth failure, 20 on missing config, 1 on runtime error, 0 on graceful shutdown.
-- [ ] Cancellation drain: when the server flips `cancel_requested=True` mid-run, the worker stops at the next boundary, submits partials via `cancellation_ack`, and the run row's state is `cancelled`.
-- [ ] Dev server is dependency-light (only `fastapi` + `uvicorn` + stdlib `sqlite3`) and starts in < 2s.
-- [ ] No CE-specific identifiers (`task`, `vps`, `search_query`, `jobs_scraped`) in `gsv/run/` or `gsv/server/`.
+- [x] `pytest tests/run tests/server/dev tests/integration/test_worker_endtoend.py` is green; coverage on `gsv.run` ≥ 90%.
+- [x] `RunCancellationRequested` carries `partials` and is raised from `CancellationMonitor.check()` after a server says cancel.
+- [x] Heartbeat backoff exactly matches `(5, 15, 30)` seconds; reregister fires on `lease_expired`/`lease_not_found`.
+- [x] Worker exits 10 on auth failure, 20 on missing config, 1 on runtime error, 0 on graceful shutdown.
+- [x] Cancellation drain: when the server flips `cancel_requested=True` mid-run, the worker stops at the next boundary, submits partials via `cancellation_ack`, and the run row's state is `cancelled`.
+- [x] Dev server remains dependency-light for the server path (`fastapi` + `uvicorn` + stdlib `sqlite3`); worker HTTP calls use `httpx`.
+- [x] No CE-specific identifiers (`task`, `vps`, `search_query`, `jobs_scraped`) in `gsv/run/` or `gsv/server/`.
 
 ---
 

@@ -1,6 +1,7 @@
 # gsv CLI
 
-S6 ships the Click-based operator surface for slices S1-S5.
+The Click-based operator surface can run local visits, inspect session bundles,
+validate config, and drive the S7 coordinated worker/dev server.
 
 ## Commands
 
@@ -13,10 +14,14 @@ gsv sessions inspect --site example --latest
 gsv sessions open --site example --latest
 gsv sessions purge --site example --older-than 14 --keep 100 --dry-run
 gsv plan show --site example
+GSV_API_KEY=dev gsv server dev --port 8085
+gsv worker --site example --once
 ```
 
-`gsv run` is a single in-process visit driver in S6. It does not claim leases,
-poll cancellation, or run schedules; S7 and S8 layer those behaviors in.
+`gsv run` is a single in-process visit driver without lease coordination.
+`gsv worker` registers a lease, claims pending runs from the coordination API,
+polls cooperative cancellation through the visit runner, and submits terminal
+outcomes. `gsv plan show` remains a scheduling placeholder until S8.
 
 ## Session Directories
 
@@ -38,5 +43,5 @@ directory directly.
 | `10` | Authentication failure |
 | `20` | Configuration error |
 
-`gsv plan show` is a placeholder in S6. It exits 0 and prints that schedule
-integration arrives in S8.
+`gsv plan show` is a placeholder until S8. It exits 0 and prints that schedule
+integration arrives later.
