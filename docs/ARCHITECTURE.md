@@ -348,17 +348,24 @@ available for S5 to wire into session bundles.
 - Worker exit codes (kept verbatim — semantics matter for systemd/launchd restart policy):
   - `0` ok, `1` runtime error (restart), `10` auth failure (don't auto-restart, page operator), `20` config error (don't auto-restart).
 
-**Server-side endpoints** the framework expects (the skeleton ships an in-memory dev server; a real deployment supplies its own):
+**Server-side endpoints** the framework expects (the skeleton ships a SQLite-backed dev server; a real deployment supplies its own):
 
 ```
 POST /api/worker/lease/register      -> {worker_id, lease_token}
 POST /api/worker/lease/heartbeat     -> {ok|fail, reason}
 POST /api/worker/lease/release
+POST /api/runs/next/claim            -> {ok|fail, run}
 POST /api/runs/{id}/claim            -> {ok|fail, run}
 GET  /api/runs/{id}/control          -> {cancel_requested, cancel_reason}
 POST /api/runs/{id}/submit           -> {accepted}
 POST /api/runs/{id}/cancellation_ack -> {accepted, partials}
 ```
+
+The reference dev server also exposes compatibility/admin endpoints for local tests and manual insertion:
+`POST /api/runs`, `GET /api/runs/next`, `POST /api/runs/{id}/heartbeat`,
+`POST /api/runs/{id}/complete`, `POST /api/runs/{id}/fail`,
+`POST /api/runs/{id}/cancel`, `GET /api/runs/{id}/status`, and
+`/admin/runs...`. All require the API key.
 
 This is intentionally minimal — it matches the operational invariants from CareerExplorer's worker without inheriting CareerExplorer's `search_tasks` schema.
 
@@ -556,6 +563,8 @@ sequenceDiagram
     W->>W: quality gate
     alt quality pass
         W->>API: submit success + results
+    else cancellation requested
+        W->>API: cancellation_ack + partial results
     else quality fail
         W->>API: submit failed + diagnostics
     end

@@ -44,11 +44,11 @@ Plan the day's scheduled slots:
 gsv plan show --site example --date 2026-05-04 --seed 42
 ```
 
-Start the worker in scheduled mode:
+Start the reference dev server and claim one queued run:
 
 ```bash
-gsv server dev &
-gsv worker --site example --schedule
+GSV_API_KEY=dev gsv server dev &
+gsv worker --site example --once
 ```
 
 ## Configuration
@@ -176,7 +176,7 @@ pytest --cov=src/gsv --cov-report=term-missing
 pre-commit run --all-files
 
 # Start the dev server
-gsv server dev
+GSV_API_KEY=dev gsv server dev
 ```
 
 Code quality: **Black** (formatting), **isort** (imports), **flake8** (linting), **mypy** (types), **bandit** (security), **pip-audit** (dependencies). All checks run via pre-commit hooks and CI.

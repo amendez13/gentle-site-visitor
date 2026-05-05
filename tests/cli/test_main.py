@@ -25,3 +25,5 @@ def test_cli_help_lists_registered_commands(runner: CliRunner) -> None:
     assert "sessions" in result.output
     assert "config" in result.output
     assert "plan" in result.output
+    assert "server" in result.output
+    assert "worker" in result.output
