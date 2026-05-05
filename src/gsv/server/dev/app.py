@@ -217,10 +217,14 @@ def _authorized(expected: str, x_api_key: str | None, authorization: str | None)
 
 def _create_run(store: DevServerStore, body: dict[str, Any]) -> dict[str, Any]:
     parameters = body.get("parameters")
+    normalized_parameters = dict(parameters) if isinstance(parameters, dict) else {}
+    profile_id = body.get("profile_id")
+    if profile_id is not None:
+        normalized_parameters.setdefault("profile_id", profile_id)
     result = store.create_run(
-        plan_name=str(body.get("plan_name") or "default"),
+        plan_name=str(body.get("plan_name") or profile_id or "default"),
         site=str(body.get("site") or ""),
-        parameters=dict(parameters) if isinstance(parameters, dict) else {},
+        parameters=normalized_parameters,
     )
     return cast(dict[str, Any], result)
 

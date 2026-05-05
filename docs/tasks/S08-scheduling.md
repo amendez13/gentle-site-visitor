@@ -2,7 +2,7 @@
 
 > **Slice:** S8 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.6](../ARCHITECTURE.md#46-scheduling-layer-gsvschedule).
-> **Status:** Not started. **Depends on S7.**
+> **Status:** Complete. **Depends on S7.**
 
 ---
 
@@ -183,13 +183,13 @@ POST /api/runs                            # body: {profile_id, site, parameters_
 
 ## 5. Acceptance criteria
 
-- [ ] `pytest tests/schedule tests/cli/test_plan_show.py` green; coverage ≥ 95% on `gsv.schedule.*` (the module is pure; no excuse for low coverage).
-- [ ] `compute_daily_plan(profiles, config, date, rng=Random(42))` produces identical output across runs.
-- [ ] Slots that would land outside `activity_window_end` are marked `skipped="outside_activity_window"`.
-- [ ] Rest-period enforcement: with `rest_min=30, rest_max=90` and three profiles preferring `10:00`, the second and third are pushed forward.
-- [ ] `gsv plan show --seed 42` produces deterministic output; `--json` emits a stable schema.
-- [ ] `gsv worker --schedule` honors Ctrl-C cleanly between slots (no orphaned `BrowserManager`).
-- [ ] No `linkedin`, `task`, or `vps` strings in `gsv/schedule/`.
+- [x] `pytest tests/schedule tests/cli/test_plan.py` green; coverage ≥ 95% on `gsv.schedule.*` (the module is pure; no excuse for low coverage).
+- [x] `compute_daily_plan(profiles, config, date, rng=Random(42))` produces identical output across runs.
+- [x] Slots that would land outside `activity_window_end` are marked `skipped="outside_activity_window"`.
+- [x] Rest-period enforcement: with `rest_min=30, rest_max=90` and three profiles preferring `10:00`, the second and third are pushed forward.
+- [x] `gsv plan show --seed 42` produces deterministic output; `--json` emits a stable schema.
+- [x] `gsv worker --schedule` honors Ctrl-C cleanly between slots (no orphaned `BrowserManager`).
+- [x] No `linkedin`, `task`, or `vps` strings in `gsv/schedule/`.
 
 ---
 

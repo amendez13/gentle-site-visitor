@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from gsv.schedule.profile import ScheduleProfile
+
 IntRange = tuple[int, int]
 
 
@@ -83,6 +85,17 @@ class WorkerConfig:
 
 
 @dataclass(frozen=True)
+class ScheduleConfig:
+    """Macro-scheduling settings for planned daily worker runs."""
+
+    activity_window_start: str = "08:00"
+    activity_window_end: str = "23:00"
+    rest_min_minutes: int = 30
+    rest_max_minutes: int = 90
+    profiles: list[ScheduleProfile] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class VisitorConfig:
     """Global visitor defaults that can be specialized by each site."""
 
@@ -96,6 +109,7 @@ class VisitorConfig:
     fingerprint: FingerprintConfig = field(default_factory=FingerprintConfig)
     observability: ObservabilityConfig = field(default_factory=ObservabilityConfig)
     worker: WorkerConfig = field(default_factory=WorkerConfig)
+    schedule: ScheduleConfig = field(default_factory=ScheduleConfig)
 
 
 @dataclass(frozen=True)

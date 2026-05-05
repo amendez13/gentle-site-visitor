@@ -53,7 +53,7 @@ class RunController:
     cancellation_min_poll_interval_seconds: float = 2.0
     heartbeat_sleeper: Callable[[float], Any] = asyncio.sleep
 
-    async def run_once(self) -> int:
+    async def run_once(self, *, run_id: str | None = None) -> int:
         """Register, claim at most one run, execute it, and release the lease."""
         registered, payload = await self.lease_client.register()
         if not registered:
@@ -62,7 +62,11 @@ class RunController:
         heartbeat_handle = self._start_heartbeat()
         try:
             self._raise_if_heartbeat_failed(heartbeat_handle)
-            run = await self.lease_client.claim_next(site=self.site)
+            run = (
+                await self.lease_client.claim(run_id)
+                if run_id is not None
+                else await self.lease_client.claim_next(site=self.site)
+            )
             self._raise_if_heartbeat_failed(heartbeat_handle)
             if run is None:
                 return int(EXIT_OK)

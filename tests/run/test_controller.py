@@ -24,6 +24,7 @@ class FakeLeaseClient:
         self.ack_ok = ack_ok
         self.submissions: list[dict[str, Any]] = []
         self.cancellations: list[dict[str, Any]] = []
+        self.claimed_ids: list[str] = []
         self.released = False
 
     async def register(self) -> tuple[bool, dict[str, Any]]:
@@ -34,6 +35,14 @@ class FakeLeaseClient:
         run = self.run
         self.run = None
         return run
+
+    async def claim(self, run_id: str) -> Run | None:
+        self.claimed_ids.append(run_id)
+        if self.run is not None and self.run.id == run_id:
+            run = self.run
+            self.run = None
+            return run
+        return None
 
     async def heartbeat_with_recovery(self, sleeper: Any) -> tuple[bool, dict[str, Any]]:
         del sleeper
@@ -209,6 +218,19 @@ async def test_controller_run_once_without_claim_releases_successfully() -> None
     code = await controller.run_once()
 
     assert code == EXIT_OK
+    assert lease.released
+
+
+async def test_controller_run_once_claims_specific_run_id() -> None:
+    """Scheduled callers can execute a specific run instead of the next queue item."""
+    lease = FakeLeaseClient(Run(id="run-1", plan_name="default", site="example"))
+    controller = _controller(lease, FakeControlClient([]))
+
+    code = await controller.run_once(run_id="run-1")
+
+    assert code == EXIT_OK
+    assert lease.claimed_ids == ["run-1"]
+    assert lease.submissions[0]["outcome"] == "completed"
     assert lease.released
 
 

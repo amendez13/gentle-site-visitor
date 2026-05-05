@@ -141,6 +141,26 @@ class LeaseClient:
         run = payload.get("run") if ok else None
         return Run.from_mapping(run) if isinstance(run, dict) else None
 
+    async def create_run(
+        self,
+        *,
+        site: str,
+        plan_name: str = "default",
+        profile_id: int | str | None = None,
+        parameters: dict[str, Any] | None = None,
+    ) -> Run | None:
+        """Create a pending run for a scheduled slot."""
+        payload: dict[str, Any] = {
+            "site": site,
+            "plan_name": plan_name,
+            "parameters": parameters or {},
+        }
+        if profile_id is not None:
+            payload["profile_id"] = profile_id
+        ok, response = await self._post("/api/runs", payload)
+        run = response.get("run") if ok else None
+        return Run.from_mapping(run) if isinstance(run, dict) else None
+
     async def submit(
         self,
         run_id: str,

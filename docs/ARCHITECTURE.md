@@ -377,13 +377,14 @@ Pure planning module ported from `orchestrator_plan.py`. No I/O. Inputs: profile
 
 **Concepts:**
 
-- **Activity window** (`activity_window_start`, `activity_window_end`, HH:MM, no cross-midnight). A slot scheduled outside is marked `skipped="outside_activity_window"` and dropped.
-- **Frequency**: `daily` or comma-separated weekday list (`mon,tue,wed,...`).
+- **Activity window** (`activity_window_start`, `activity_window_end`, HH:MM, no cross-midnight). A slot scheduled outside is retained in the plan and marked `skipped="outside_activity_window"`.
+- **Frequency**: `daily`, `weekdays`, `weekends`, or comma-separated weekday list (`mon,tue,wed,...`).
 - **Per-slot jitter**: each profile's `preferred_time` is shifted by uniform `±jitter_minutes`. Avoids HH:00/HH:30 clockwork.
-- **Rest-period enforcement**: each subsequent kept slot is pushed forward by a uniform random `rest_min_minutes..rest_max_minutes` from the previous kept slot. If the push exceeds `window_end`, the slot is dropped as skipped.
+- **Rest-period enforcement**: each subsequent kept slot is pushed forward by a uniform random `rest_min_minutes..rest_max_minutes` from the previous kept slot. If the push exceeds `window_end`, the slot is retained but marked skipped.
 - **Determinism**: a seeded RNG can be passed for tests; default is `Random()`.
 
 The skeleton also supports a single-shot mode through `gsv run <site> --once`, which bypasses planning entirely.
+`gsv worker --schedule` uses YAML profiles as the v0 source of truth, creates a pending run for each due slot, then claims that exact run id before execution. This keeps the reference server scheduling-agnostic and preserves the one-run-at-a-time worker model.
 
 ### 4.7 Observability layer (`gsv.observability`)
 
@@ -481,7 +482,12 @@ visitor:
     activity_window_end: "23:00"
     rest_min_minutes: 30
     rest_max_minutes: 90
-    profiles: []                   # populated by app
+    profiles:
+      - id: morning
+        name: Morning visit
+        frequency: weekdays
+        preferred_time: "09:00"
+        jitter_minutes: 30
 
 sites:
   example_site:                    # selected via CLI / env
@@ -788,7 +794,7 @@ To resolve before/while implementing slices:
 1. **In-memory dev server contract vs production.** Do we ship a SQLite reference, or document the HTTP contract only?
 2. **Multiple sessions per worker.** The skeleton assumes one site session at a time. Multi-site workers require a session pool — out of scope for v0.
 3. **Proxy support.** Currently expected to be the operator's network responsibility. Should the skeleton expose a proxy field for explicit dual-IP testing?
-4. **Schedule sources of truth.** YAML profiles vs database-backed profiles. CareerExplorer uses DB-backed; the skeleton ships YAML for simplicity.
+4. **Schedule sources of truth.** Resolved in S8: YAML profiles are the v0 source of truth; database-backed profiles remain a later extension.
 5. **Manifest evolution.** Resolved in S5: manifests use a stable top-level shape with open-ended `counters: dict[str, int]`; no schema-version field is added for counter-only evolution.
 6. **Test strategy for non-deterministic primitives.** Resolved in S1 for the browser layer: delay, dwell, mouse, click, typing, scroll, and viewport helpers accept an injected seeded RNG. S8 applies the same pattern to scheduling.
 7. **Per-app state.** Should the skeleton expose a small KV store under the session dir for app-defined cross-run state, or leave it to apps?

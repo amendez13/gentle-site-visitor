@@ -50,6 +50,20 @@ visitor:
   worker:
     api_url: http://127.0.0.1:8085
     api_key: ${GSV_API_KEY}
+  schedule:
+    activity_window_start: "07:30"
+    activity_window_end: "21:00"
+    rest_min_minutes: 15
+    rest_max_minutes: 45
+    profiles:
+      - id: morning
+        name: Morning
+        frequency: weekdays
+        preferred_time: "09:15"
+        jitter_minutes: 10
+      - id: 2
+        name: Weekend
+        enabled: false
 sites:
   example:
     app_module: apps.example
@@ -93,6 +107,14 @@ sites:
     assert visitor.observability.max_sessions == 25
     assert visitor.observability.har_content == "embed"
     assert visitor.worker.api_key == "secret"
+    assert visitor.schedule.activity_window_start == "07:30"
+    assert visitor.schedule.activity_window_end == "21:00"
+    assert visitor.schedule.rest_min_minutes == 15
+    assert visitor.schedule.rest_max_minutes == 45
+    assert visitor.schedule.profiles[0].id == "morning"
+    assert visitor.schedule.profiles[0].frequency == "weekdays"
+    assert visitor.schedule.profiles[1].id == 2
+    assert visitor.schedule.profiles[1].enabled is False
     assert site.name == "example"
     assert site.app_module == "apps.example"
     assert site.locale == "fr-FR"
@@ -261,6 +283,14 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
             "Range values",
         ),
         ("visitor:\n  headless: flase\nsites:\n  example: {}\n", "visitor.headless"),
+        ("visitor:\n  schedule:\n    activity_window_start: '8am'\nsites:\n  example: {}\n", "activity_window_start"),
+        ("visitor:\n  schedule:\n    rest_min_minutes: 90\n    rest_max_minutes: 30\nsites:\n  example: {}\n", "rest_min"),
+        ("visitor:\n  schedule:\n    profiles: bad\nsites:\n  example: {}\n", "visitor.schedule.profiles"),
+        ("visitor:\n  schedule:\n    profiles:\n      - name: missing id\nsites:\n  example: {}\n", "profiles\\[0\\].id"),
+        (
+            "visitor:\n  schedule:\n    profiles:\n      - id: one\n        frequency: monday\nsites:\n  example: {}\n",
+            "profiles\\[0\\].frequency",
+        ),
         (
             "sites:\n  example:\n    auth:\n      username_selectors: '#username'\n",
             "sites.example.auth.username_selectors",
