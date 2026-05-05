@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -15,11 +16,15 @@ from gsv.config.model import (
     IntRange,
     ObservabilityConfig,
     PacingConfig,
+    ScheduleConfig,
     SiteAuthConfig,
     SiteConfig,
     VisitorConfig,
     WorkerConfig,
 )
+from gsv.schedule import matches_day
+from gsv.schedule.plan import _parse_hhmm
+from gsv.schedule.profile import ScheduleProfile
 
 
 class ConfigError(ValueError):
@@ -112,6 +117,7 @@ def _parse_visitor(raw: dict[str, Any]) -> VisitorConfig:
         fingerprint=_parse_fingerprint(raw.get("fingerprint")),
         observability=_parse_observability(raw.get("observability")),
         worker=_parse_worker(raw.get("worker")),
+        schedule=_parse_schedule(raw.get("schedule")),
     )
 
 
@@ -216,6 +222,88 @@ def _parse_worker(raw: Any) -> WorkerConfig:
         lease_ttl_seconds=max(1, int(data.get("lease_ttl_seconds", defaults.lease_ttl_seconds))),
         heartbeat_interval_seconds=max(1, int(data.get("heartbeat_interval_seconds", defaults.heartbeat_interval_seconds))),
     )
+
+
+def _parse_schedule(raw: Any) -> ScheduleConfig:
+    defaults = ScheduleConfig()
+    data = _mapping(raw, "visitor.schedule", allow_none=True)
+    start = _as_str(data.get("activity_window_start"), defaults.activity_window_start)
+    end = _as_str(data.get("activity_window_end"), defaults.activity_window_end)
+    try:
+        start_time = _parse_hhmm(start, field_name="visitor.schedule.activity_window_start")
+        end_time = _parse_hhmm(end, field_name="visitor.schedule.activity_window_end")
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+    if start_time > end_time:
+        raise ConfigError("visitor.schedule activity window must not cross midnight")
+    rest_min = int(data.get("rest_min_minutes", defaults.rest_min_minutes))
+    rest_max = int(data.get("rest_max_minutes", defaults.rest_max_minutes))
+    if rest_min < 0 or rest_max < 0:
+        raise ConfigError("visitor.schedule rest periods must be non-negative")
+    if rest_min > rest_max:
+        raise ConfigError("visitor.schedule.rest_min_minutes must be less than or equal to rest_max_minutes")
+    return ScheduleConfig(
+        activity_window_start=start,
+        activity_window_end=end,
+        rest_min_minutes=rest_min,
+        rest_max_minutes=rest_max,
+        profiles=_parse_schedule_profiles(data.get("profiles")),
+    )
+
+
+def _parse_schedule_profiles(value: Any) -> list[ScheduleProfile]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigError("visitor.schedule.profiles must be a list")
+    return [
+        _parse_schedule_profile(raw_profile, f"visitor.schedule.profiles[{index}]") for index, raw_profile in enumerate(value)
+    ]
+
+
+def _parse_schedule_profile(raw_profile: Any, name: str) -> ScheduleProfile:
+    data = _mapping(raw_profile, name)
+    profile_id = _parse_schedule_profile_id(data.get("id"), name)
+    profile_name = _as_str(data.get("name"), f"profile-{profile_id}").strip()
+    if not profile_name:
+        raise ConfigError(f"{name}.name must be non-empty")
+    frequency = _parse_schedule_frequency(data.get("frequency"), name)
+    preferred_time = _parse_schedule_preferred_time(data.get("preferred_time"), name)
+    jitter_minutes = int(data.get("jitter_minutes", 30))
+    if jitter_minutes < 0:
+        raise ConfigError(f"{name}.jitter_minutes must be non-negative")
+    return ScheduleProfile(
+        id=profile_id,
+        name=profile_name,
+        enabled=_as_bool(_with_default(data.get("enabled"), True), f"{name}.enabled"),
+        frequency=frequency,
+        preferred_time=preferred_time,
+        jitter_minutes=jitter_minutes,
+    )
+
+
+def _parse_schedule_profile_id(value: Any, name: str) -> int | str:
+    if not isinstance(value, (int, str)) or str(value).strip() == "":
+        raise ConfigError(f"{name}.id must be an integer or non-empty string")
+    return value
+
+
+def _parse_schedule_frequency(value: Any, name: str) -> str:
+    frequency = _as_str(value, "daily")
+    try:
+        matches_day(frequency, date(2026, 1, 5))
+    except ValueError as exc:
+        raise ConfigError(f"{name}.frequency {exc}") from exc
+    return frequency
+
+
+def _parse_schedule_preferred_time(value: Any, name: str) -> str:
+    preferred_time = _as_str(value, "09:00")
+    try:
+        _parse_hhmm(preferred_time, field_name=f"{name}.preferred_time")
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+    return preferred_time
 
 
 def _parse_int_range(value: Any, default: IntRange) -> IntRange:

@@ -51,6 +51,12 @@ GSV_API_KEY=dev gsv server dev &
 gsv worker --site example --once
 ```
 
+Run from YAML schedule profiles:
+
+```bash
+GSV_API_KEY=dev gsv worker --site example --schedule
+```
+
 ## Configuration
 
 Configuration is YAML, with `${ENV_VAR}` interpolation and per-site overrides:
@@ -80,7 +86,12 @@ visitor:
     activity_window_end: "23:00"
     rest_min_minutes: 30
     rest_max_minutes: 90
-    profiles: []               # populated by app
+    profiles:
+      - id: morning
+        name: Morning visit
+        frequency: weekdays
+        preferred_time: "09:00"
+        jitter_minutes: 30
 
 sites:
   example:

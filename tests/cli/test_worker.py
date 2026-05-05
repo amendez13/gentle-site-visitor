@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import time
 from typing import Any
 
 from click.testing import CliRunner
@@ -10,7 +11,8 @@ from click.testing import CliRunner
 from gsv.cli import cli
 from gsv.cli import server as server_module
 from gsv.cli import worker as worker_module
-from gsv.config import SiteConfig, VisitorConfig, WorkerConfig
+from gsv.config import ScheduleConfig, SiteConfig, VisitorConfig, WorkerConfig
+from gsv.schedule import ScheduleProfile
 from tests.cli.conftest import write_config
 
 
@@ -102,6 +104,84 @@ async def test_run_worker_builds_controller_and_closes_clients(monkeypatch) -> N
     assert once_code == 0
     assert forever_code == 1
     assert closed == ["lease", "control", "lease", "control"]
+
+
+async def test_run_worker_schedule_mode_creates_scheduled_run(monkeypatch) -> None:
+    """Scheduled mode creates a run for the slot and executes that exact run id."""
+    visitor = replace(
+        VisitorConfig(),
+        worker=WorkerConfig(api_url="http://api.test", api_key="secret"),
+        schedule=ScheduleConfig(
+            activity_window_start="08:00",
+            activity_window_end="12:00",
+            rest_min_minutes=30,
+            rest_max_minutes=30,
+            profiles=[ScheduleProfile(id="morning", name="Morning", preferred_time="09:00", jitter_minutes=0)],
+        ),
+    )
+    site = SiteConfig(name="example")
+    calls: list[Any] = []
+
+    class FakeRun:
+        id = "run-morning"
+
+    class FakeLeaseClient:
+        def __init__(self, api_url: str, api_key: str, *, lease_ttl_seconds: int) -> None:
+            del api_url, api_key, lease_ttl_seconds
+
+        async def create_run(self, **kwargs: Any) -> FakeRun:
+            calls.append({"create_run": kwargs})
+            return FakeRun()
+
+        async def aclose(self) -> None:
+            calls.append("lease_closed")
+
+    class FakeControlClient:
+        def __init__(self, api_url: str, api_key: str) -> None:
+            del api_url, api_key
+
+        async def aclose(self) -> None:
+            calls.append("control_closed")
+
+    class FakeController:
+        async def run_once(self, *, run_id: str | None = None) -> int:
+            calls.append({"run_once": run_id})
+            return 0
+
+    class FakeSchedulingRunner:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+
+        async def run_once(self) -> int:
+            slot = visitor.schedule.profiles[0]
+            run_id = await self.kwargs["slot_run_factory"](
+                type(
+                    "Slot",
+                    (),
+                    {
+                        "profile_id": slot.id,
+                        "profile_name": slot.name,
+                        "scheduled_time": time(9, 0),
+                        "original_time": time(9, 0),
+                    },
+                )()
+            )
+            return await self.kwargs["run_controller_factory"]().run_once(run_id=run_id)
+
+    monkeypatch.setattr(worker_module, "load_site_config", lambda ctx, site_name: (visitor, site))
+    monkeypatch.setattr(worker_module, "LeaseClient", FakeLeaseClient)
+    monkeypatch.setattr(worker_module, "ControlClient", FakeControlClient)
+    monkeypatch.setattr(worker_module, "build_controller", lambda **kwargs: FakeController())
+    monkeypatch.setattr(worker_module, "SchedulingRunner", FakeSchedulingRunner)
+
+    code = await worker_module._run_worker(  # type: ignore[arg-type]
+        object(), site_name="example", once=True, poll_interval=1, scheduled=True
+    )
+
+    assert code == 0
+    assert calls[0]["create_run"]["profile_id"] == "morning"
+    assert calls[1] == {"run_once": "run-morning"}
+    assert calls[-2:] == ["lease_closed", "control_closed"]
 
 
 def test_server_dev_command_sets_default_key_and_runs_uvicorn(runner: CliRunner, monkeypatch) -> None:

@@ -62,7 +62,7 @@ async def test_dev_server_compatibility_endpoints(tmp_path) -> None:  # type: ig
     headers = {"Authorization": "Bearer secret"}
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver", headers=headers) as client:
         health = await client.get("/healthz")
-        created = await client.post("/api/runs", json={"plan_name": "default", "site": "example"})
+        created = await client.post("/api/runs", json={"profile_id": "morning", "site": "example"})
         run_id = created.json()["run"]["id"]
         next_run = await client.get("/api/runs/next?site=example")
         missing = await client.get("/api/runs/missing/status")
@@ -90,6 +90,8 @@ async def test_dev_server_compatibility_endpoints(tmp_path) -> None:  # type: ig
         listed = await client.get("/admin/runs")
 
     assert health.json() == {"status": "ok"}
+    assert created.json()["run"]["plan_name"] == "morning"
+    assert created.json()["run"]["parameters"]["profile_id"] == "morning"
     assert next_run.json()["run"]["id"] == run_id
     assert missing.status_code == 404
     assert complete.json()["accepted"] is True

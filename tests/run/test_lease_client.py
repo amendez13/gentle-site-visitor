@@ -90,6 +90,19 @@ async def test_lease_client_http_paths_cover_claim_submit_and_failures() -> None
                 200,
                 json={"ok": True, "run": {"id": "run-1", "plan_name": "default", "site": "example", "parameters": {}}},
             )
+        if request.url.path == "/api/runs":
+            return httpx.Response(
+                200,
+                json={
+                    "ok": True,
+                    "run": {
+                        "id": "created-1",
+                        "plan_name": "morning",
+                        "site": "example",
+                        "parameters": {"profile_id": "morning"},
+                    },
+                },
+            )
         if request.url.path == "/api/runs/next/claim":
             return httpx.Response(409, json={"ok": False, "reason": "lease_expired"})
         if request.url.path == "/api/runs/run-1/submit":
@@ -106,6 +119,7 @@ async def test_lease_client_http_paths_cover_claim_submit_and_failures() -> None
     registered, _payload = await client.register()
     heartbeat_ok, _heartbeat_payload = await client.heartbeat()
     claimed = await client.claim("run-1")
+    created = await client.create_run(site="example", plan_name="morning", profile_id="morning")
     next_run = await client.claim_next(site="example")
     submitted = await client.submit("run-1", outcome="completed", results={})
     acked = await client.acknowledge_cancellation("run-1", partials={})
@@ -114,6 +128,8 @@ async def test_lease_client_http_paths_cover_claim_submit_and_failures() -> None
     assert registered
     assert heartbeat_ok
     assert claimed is not None and claimed.id == "run-1"
+    assert created is not None and created.id == "created-1"
+    assert created.parameters == {"profile_id": "morning"}
     assert next_run is None
     assert submitted
     assert not acked
