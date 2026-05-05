@@ -56,6 +56,16 @@ recorder = SessionRecorder.open(
 browser.attach_recorder(recorder)
 ```
 
+The visit runner snapshots framework counters into the recorder, but the caller finalizes the recorder after browser recording teardown has registered artifacts:
+
+```python
+result = await VisitRunner(ctx).run(plan)
+await browser.stop_tracing()
+await browser.finalize_har()
+browser.finalize_video()
+recorder.finalize(outcome=result.outcome, error=result.error)
+```
+
 ## Store And Retention
 
 `SessionStore` and `list_session_records()` parse session directories for later CLI use. `enforce_session_retention()` applies the default retention model: delete sessions older than 14 days and then keep at most the newest 100 remaining sessions, oldest first.

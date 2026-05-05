@@ -189,7 +189,7 @@ When non-None, the runner:
 
 - Calls `recorder.update_counters(**framework_counters)` at run end.
 - Routes `RecordEvent` to `JsonlEvidenceSink(recorder.session_dir / "evidence.jsonl")` automatically. (S4 already accepts a sink; S5 just plugs the right one.)
-- After plan completion, calls `recorder.finalize(outcome=visit_result.outcome, error=visit_result.error)`.
+- Leaves `recorder.finalize(outcome=visit_result.outcome, error=visit_result.error)` to the outer run/CLI teardown after BrowserManager has finalized and registered trace/HAR/video artifacts.
 
 ### Step 5.5 — Store
 

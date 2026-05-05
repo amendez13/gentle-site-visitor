@@ -74,8 +74,12 @@ class FakeBrowser:
     def __init__(self) -> None:
         self.context_kwargs: list[dict[str, Any]] = []
         self.contexts: list[FakeContext] = []
+        self.fail_next_contexts = 0
 
     async def new_context(self, **kwargs: Any) -> FakeContext:
+        if self.fail_next_contexts > 0:
+            self.fail_next_contexts -= 1
+            raise RuntimeError("new_context failed")
         self.context_kwargs.append(kwargs)
         context = FakeContext()
         self.contexts.append(context)
@@ -228,6 +232,29 @@ async def test_har_rotation_tolerates_enable_and_finalize_errors(tmp_path) -> No
     finalize_fail._context = FakeContext(fail_storage=True)  # type: ignore[assignment]
 
     assert await finalize_fail.finalize_har() is None
+
+
+@pytest.mark.asyncio
+async def test_har_rotation_restores_context_when_recorded_context_creation_fails(  # type: ignore[no-untyped-def]
+    tmp_path,
+) -> None:
+    """A failed recorded-context creation restores a baseline context."""
+    manager = build_manager(tmp_path, ObservabilityConfig(mode="always", har=True))
+    recorder = open_recorder(tmp_path)
+    manager.attach_recorder(recorder)
+    initial_context = manager.context
+    browser = manager._browser
+    assert isinstance(browser, FakeBrowser)
+    browser.fail_next_contexts = 1
+
+    await manager.enable_har_for_session()
+
+    assert initial_context is not None
+    assert initial_context.closed is True
+    assert manager.context is browser.contexts[-1]
+    assert manager.context is not initial_context
+    assert manager.har_path is None
+    assert "record_har_path" not in browser.context_kwargs[-1]
 
 
 @pytest.mark.asyncio

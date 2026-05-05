@@ -75,10 +75,13 @@ class BrowserRecording:
         if video_dir is not None:
             video_dir.mkdir(parents=True, exist_ok=True)
         current_viewport = dict(self._manager._last_viewport) or None
+        closed_old_context = False
+        storage_state: object | None = None
 
         try:
             storage_state = await self._manager.context.storage_state()
             await self._manager.context.close()
+            closed_old_context = True
             self._manager._context = await self._manager._browser.new_context(
                 **self._manager._build_context_kwargs(
                     storage_state,
@@ -93,6 +96,8 @@ class BrowserRecording:
             LOG.info("Context recreated with session recording (har=%s video=%s)", bool(har_path), bool(video_dir))
         except Exception:
             LOG.warning("Failed to enable session recording", exc_info=True)
+            if closed_old_context:
+                await self._restore_baseline_context(storage_state, current_viewport)
             self._har_path = None
             self._video_dir = None
 
@@ -106,13 +111,17 @@ class BrowserRecording:
             self._har_path = None
             return har_path
 
+        closed_old_context = False
+        storage_state: object | None = None
+        current_viewport = dict(self._manager._last_viewport) or None
         try:
             storage_state = await self._manager.context.storage_state()
             await self._manager.context.close()
+            closed_old_context = True
             self._manager._context = await self._manager._browser.new_context(
                 **self._manager._build_context_kwargs(
                     storage_state,
-                    viewport=dict(self._manager._last_viewport) or None,
+                    viewport=current_viewport,
                 )
             )
             await self._manager._apply_context_defaults()
@@ -123,10 +132,25 @@ class BrowserRecording:
                 LOG.info("Video recording finalized for session %s", self._recorder.session_id)
         except Exception:
             LOG.warning("Failed to finalize session recording", exc_info=True)
+            if closed_old_context:
+                await self._restore_baseline_context(storage_state, current_viewport)
             har_path = None
         finally:
             self._har_path = None
         return har_path
+
+    async def _restore_baseline_context(self, storage_state: object, viewport: dict[str, int] | None) -> None:
+        if not self._manager._browser:
+            self._manager._context = None
+            return
+        try:
+            self._manager._context = await self._manager._browser.new_context(
+                **self._manager._build_context_kwargs(storage_state, viewport=viewport)
+            )
+            await self._manager._apply_context_defaults()
+        except Exception:
+            LOG.warning("Failed to restore browser context after recording failure", exc_info=True)
+            self._manager._context = None
 
     def finalize_video(self) -> str | None:
         """Move recorded videos into canonical session filenames."""

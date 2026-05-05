@@ -12,9 +12,9 @@ from gsv.visit.plan import StepResult, VisitPlan, VisitStep
 class VisitRunner:
     """Run visit plans while applying pacing, rate limiting, and cancellation seams."""
 
-    def __init__(self, ctx: VisitContext, *, finalize_recorder: bool = True) -> None:
+    def __init__(self, ctx: VisitContext, *, update_recorder: bool = True) -> None:
         self.ctx = ctx
-        self.finalize_recorder = finalize_recorder
+        self.update_recorder = update_recorder
 
     async def run(self, plan: VisitPlan) -> VisitResult:
         """Run a plan and return the aggregate result."""
@@ -31,7 +31,7 @@ class VisitRunner:
                 extracted=dict(self.ctx.extracted),
                 step_results=step_results,
             )
-            self._finalize_recorder(result)
+            self._update_recorder(result)
             return result
 
         outcome = plan.classify(step_results)
@@ -42,7 +42,7 @@ class VisitRunner:
             extracted=dict(self.ctx.extracted),
             step_results=step_results,
         )
-        self._finalize_recorder(result)
+        self._update_recorder(result)
         return result
 
     async def _run_plan(self, plan: VisitPlan, step_results: list[StepResult]) -> None:
@@ -92,13 +92,12 @@ class VisitRunner:
         name = str(exc.__class__.__name__)
         return name == "RunCancellationRequested" or "cancel" in name.lower()
 
-    def _finalize_recorder(self, result: VisitResult) -> None:
-        if not self.finalize_recorder or self.ctx.recorder is None:
+    def _update_recorder(self, result: VisitResult) -> None:
+        if not self.update_recorder or self.ctx.recorder is None:
             return
         self.ctx.recorder.update_counters(**result.counters)
-        self.ctx.recorder.finalize(outcome=result.outcome, error=result.error)
 
 
 async def run_subplan(ctx: VisitContext, steps: list[VisitStep]) -> VisitResult:
     """Run a nested list of steps with the same wrapping semantics as top-level steps."""
-    return await VisitRunner(ctx, finalize_recorder=False).run(VisitPlan(steps=steps))
+    return await VisitRunner(ctx, update_recorder=False).run(VisitPlan(steps=steps))

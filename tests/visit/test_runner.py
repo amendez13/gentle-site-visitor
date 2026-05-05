@@ -120,8 +120,8 @@ async def test_runner_reports_cancellation_from_boundary(fake_page) -> None:  # 
 
 
 @pytest.mark.asyncio
-async def test_runner_finalizes_attached_recorder(fake_page, tmp_path) -> None:  # type: ignore[no-untyped-def]
-    """Top-level VisitRunner writes framework counters into the session manifest."""
+async def test_runner_updates_attached_recorder_counters(fake_page, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Top-level VisitRunner snapshots counters but leaves finalization to outer teardown."""
     recorder = SessionRecorder.open(
         sessions_dir=tmp_path,
         mode="always",
@@ -136,8 +136,12 @@ async def test_runner_finalizes_attached_recorder(fake_page, tmp_path) -> None: 
     )
 
     result = await VisitRunner(ctx).run(VisitPlan([RecordingStep([])]))
+    recorder.register_artifact("trace", recorder.session_dir / "trace.zip")
+    manifest = recorder.finalize(outcome=result.outcome, error=result.error)
 
-    manifest = SessionManifest.from_json((recorder.session_dir / "manifest.json").read_text(encoding="utf-8"))
+    loaded = SessionManifest.from_json((recorder.session_dir / "manifest.json").read_text(encoding="utf-8"))
     assert result.outcome == "completed"
     assert manifest.outcome == "completed"
     assert manifest.counters == {"requests_made": 1}
+    assert manifest.artifacts["trace"] == "trace.zip"
+    assert loaded == manifest
