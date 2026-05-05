@@ -64,6 +64,9 @@ visitor:
     rate_limit_per_hour: 90
     burst_cooldown_interval: 5
     burst_cooldown_range: [30.0, 90.0]
+    content_wait_timeout_ms: 10000
+    content_wait_reaction_range: [0.5, 1.5]
+    content_wait_with_mouse_move: true
     post_login_warmup: true
   observability:
     mode: failures             # off | failures | always

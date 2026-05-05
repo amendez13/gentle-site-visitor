@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from gsv.config.loader import ConfigError, load_config
 from gsv.config.model import (
+    DelayProfileSpec,
     FingerprintConfig,
     ObservabilityConfig,
     PacingConfig,
@@ -11,10 +12,12 @@ from gsv.config.model import (
     SiteConfig,
     VisitorConfig,
     WorkerConfig,
+    default_delay_profiles,
 )
 
 __all__ = [
     "ConfigError",
+    "DelayProfileSpec",
     "FingerprintConfig",
     "ObservabilityConfig",
     "PacingConfig",
@@ -22,5 +25,6 @@ __all__ = [
     "SiteConfig",
     "VisitorConfig",
     "WorkerConfig",
+    "default_delay_profiles",
     "load_config",
 ]

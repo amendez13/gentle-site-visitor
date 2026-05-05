@@ -215,7 +215,7 @@ Apps construct `Credentials.from_env("EXAMPLE_SITE")`. The framework never reads
 
 ## 6. Out of scope (deferred)
 
-- `DelayProfile.auth` — S3. Until S3 lands, S2 uses bare `random_delay(0.5, 1.0)` with a `# TODO(S3)` marker.
+- `DelayProfile.auth` — S3 replaces S2's temporary `random_delay(0.5, 1.0)` login-flow delay.
 - 2FA / OTP entry — never. The skeleton's policy is "manual escalation only".
 - Credential rotation, vault integration — out of scope. Apps can subclass `Credentials.from_env` if they need a vault.
 - Re-login after session expiry mid-run — handled by `RunController` retry policy in S7. S2 only handles login at session start.

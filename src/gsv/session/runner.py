@@ -10,8 +10,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 from gsv.browser.manager import BrowserManager
-from gsv.browser.primitives import click_with_position_jitter, human_type, random_delay
-from gsv.config.model import VisitorConfig
+from gsv.browser.primitives import click_with_position_jitter, human_type
+from gsv.config.model import VisitorConfig, default_delay_profiles
+from gsv.pacing import DelayProfile, DelayProfileSpec
 from gsv.session.adapter import SiteAuthAdapter
 from gsv.session.challenge import ChallengePolicy
 from gsv.session.credentials import Credentials
@@ -36,7 +37,8 @@ class Session:
         *,
         challenge_policy: ChallengePolicy | None = None,
         rng: random.Random | None = None,
-        auth_delay_range: tuple[float, float] = (0.5, 1.0),
+        auth_delay_profile: DelayProfile | None = None,
+        auth_delay_range: tuple[float, float] | None = None,
         form_wait_timeout_ms: int = 3000,
         completion_timeout_ms: int = 15000,
     ) -> None:
@@ -48,7 +50,7 @@ class Session:
             timeout_seconds=config.manual_verification_timeout_seconds,
         )
         self._rng = rng if rng is not None else random.Random()
-        self._auth_delay_range = auth_delay_range
+        self._auth_delay_profile = auth_delay_profile or self._build_auth_delay_profile(auth_delay_range)
         self._form_wait_timeout_ms = max(1, form_wait_timeout_ms)
         self._completion_timeout_ms = max(1, completion_timeout_ms)
         self._page: Any | None = None
@@ -184,7 +186,6 @@ class Session:
     async def _submit_login_form(self, page: Any) -> bool:
         clicked = await self._try_click(page, self.adapter.submit_selectors)
         if clicked:
-            # TODO(S3): replace this temporary reaction delay with DelayProfile.auth.
             await self._auth_delay()
         return bool(clicked)
 
@@ -233,8 +234,14 @@ class Session:
         return False
 
     async def _auth_delay(self) -> None:
-        # TODO(S3): replace this temporary reaction delay with DelayProfile.auth.
-        await random_delay(*self._auth_delay_range, rng=self._rng)
+        await self._auth_delay_profile.sleep()
+
+    def _build_auth_delay_profile(self, auth_delay_range: tuple[float, float] | None) -> DelayProfile:
+        if auth_delay_range is not None:
+            spec = DelayProfileSpec(min_seconds=auth_delay_range[0], max_seconds=auth_delay_range[1])
+            return DelayProfile("auth", spec, rng=self._rng)
+        spec = self.config.pacing.profiles.get("auth", default_delay_profiles()["auth"])
+        return DelayProfile("auth", spec, rng=self._rng)
 
     def _is_login_url(self, url: str) -> bool:
         if not self.adapter.login_url:

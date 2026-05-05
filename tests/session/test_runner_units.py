@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from gsv.config import VisitorConfig
+from gsv.config import DelayProfileSpec, PacingConfig, VisitorConfig, default_delay_profiles
 from gsv.session import ChallengePolicy, Credentials, Session, SessionAuthError, SiteAuthAdapter
 
 
@@ -285,3 +285,22 @@ def test_is_login_url_handles_missing_login_url() -> None:
     session, _browser = make_session(FakePage(), SiteAuthAdapter(auth_marker_url="https://example.test/home"))
 
     assert session._is_login_url("https://example.test/login") is False
+
+
+def test_session_auth_delay_falls_back_when_auth_profile_is_omitted() -> None:
+    """Programmatic profile overrides do not remove the auth delay fallback."""
+    page = FakePage()
+    browser = FakeBrowser(page)
+    visitor = VisitorConfig(
+        pacing=PacingConfig(
+            profiles={"production": DelayProfileSpec(min_seconds=0.0, max_seconds=0.0)},
+        )
+    )
+
+    session = Session(
+        browser,  # type: ignore[arg-type]
+        SiteAuthAdapter(auth_marker_url="https://example.test/home"),
+        visitor,
+    )
+
+    assert session._auth_delay_profile.spec == default_delay_profiles()["auth"]
