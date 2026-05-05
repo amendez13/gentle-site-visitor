@@ -32,8 +32,8 @@ def build_plan(ctx: VisitContext | None = None, *, limit: int | None = None) -> 
             Scroll(times=2, name="scroll_to_footer", content_marker=S.PAGE_FOOTER),
             Dwell(
                 name="closing_read",
-                min_seconds=_env_float("GSV_EXAMPLE_DWELL_MIN", 7.0),
-                max_seconds=_env_float("GSV_EXAMPLE_DWELL_MAX", 10.0),
+                min_seconds=_env_float("GSV_EXAMPLE_DWELL_MIN", 0.75),
+                max_seconds=_env_float("GSV_EXAMPLE_DWELL_MAX", 1.0),
             ),
             RecordEvent("visit_complete", _visit_complete_payload, name="record_visit_complete"),
             FinalizeExampleCounters(),
@@ -58,9 +58,13 @@ def _asteroid_steps(item: Any) -> list[Any]:
             ],
             name="branch_infobox",
         ),
+        Scroll(times=1, name="skim_article"),
+        Dwell(
+            name="read_article",
+            min_seconds=_env_float("GSV_EXAMPLE_ARTICLE_DWELL_MIN", 8.0),
+            max_seconds=_env_float("GSV_EXAMPLE_ARTICLE_DWELL_MAX", 10.0),
+        ),
         RecordEvent("asteroid_extracted", _asteroid_payload(asteroid), name="record_asteroid_extracted"),
-        Navigate(url=LIST_URL, name="return_to_list", content_marker=S.LIST_TABLE),
-        WaitFor(selector=S.LIST_TABLE, name="wait_for_list_return", retries=1),
     ]
 
 

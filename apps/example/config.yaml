@@ -5,20 +5,20 @@ visitor:
     profile: production
     profiles:
       production:
-        min_seconds: "${GSV_EXAMPLE_DELAY_MIN:-2.0}"
-        max_seconds: "${GSV_EXAMPLE_DELAY_MAX:-5.0}"
-        distraction_chance: "${GSV_EXAMPLE_DISTRACTION_CHANCE:-0.10}"
+        min_seconds: "${GSV_EXAMPLE_DELAY_MIN:-0.1}"
+        max_seconds: "${GSV_EXAMPLE_DELAY_MAX:-0.25}"
+        distraction_chance: "${GSV_EXAMPLE_DISTRACTION_CHANCE:-0.0}"
         distraction_min_seconds: "${GSV_EXAMPLE_DISTRACTION_MIN:-15.0}"
         distraction_max_seconds: "${GSV_EXAMPLE_DISTRACTION_MAX:-45.0}"
-    rate_limit_per_hour: "${GSV_EXAMPLE_RATE_LIMIT_PER_HOUR:-30}"
-    burst_cooldown_interval: "${GSV_EXAMPLE_BURST_INTERVAL:-10}"
+    rate_limit_per_hour: "${GSV_EXAMPLE_RATE_LIMIT_PER_HOUR:-90}"
+    burst_cooldown_interval: "${GSV_EXAMPLE_BURST_INTERVAL:-50}"
     burst_cooldown_range:
-      - "${GSV_EXAMPLE_BURST_MIN:-45.0}"
-      - "${GSV_EXAMPLE_BURST_MAX:-120.0}"
+      - "${GSV_EXAMPLE_BURST_MIN:-0.5}"
+      - "${GSV_EXAMPLE_BURST_MAX:-1.0}"
     content_wait_timeout_ms: 10000
     content_wait_reaction_range:
-      - "${GSV_EXAMPLE_CONTENT_WAIT_MIN:-0.5}"
-      - "${GSV_EXAMPLE_CONTENT_WAIT_MAX:-1.5}"
+      - "${GSV_EXAMPLE_CONTENT_WAIT_MIN:-0.05}"
+      - "${GSV_EXAMPLE_CONTENT_WAIT_MAX:-0.1}"
     post_login_warmup: false
   observability:
     mode: failures
