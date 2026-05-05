@@ -2,7 +2,7 @@
 
 > **Slice:** S3 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.3](../ARCHITECTURE.md#43-pacing-layer-gsvpacing).
-> **Status:** Not started. **Depends on S1.**
+> **Status:** Implemented. **Depends on S1.**
 
 ---
 
@@ -14,7 +14,7 @@ After this slice, an integration test should be able to:
 
 1. Build a `Pacing` aggregate (`{delay_profile, burst_governor, rate_limiter, content_wait}`) from `VisitorConfig` + `SiteConfig`.
 2. Sample 1000 delays from `DelayProfile("production")` and observe the distribution: ~90% in `[2.0, 5.0]`, ~10% in `[15.0, 45.0]`, mean ~ 6.5s.
-3. Tick a `BurstGovernor(interval=5, cooldown_range=(30, 90))` six times and observe a sleep on the 6th tick.
+3. Tick a `BurstGovernor(interval=5, cooldown_range=(30, 90))` five times and observe a sleep on the 5th tick.
 4. Call `ContentAwareWait.maybe_run(page, content_marker)` and observe `wait_for_selector` + a small reaction delay + an optional mouse move.
 5. Replace any of the above with a no-op via configuration (`pacing.profile=disabled`) for tests.
 

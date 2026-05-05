@@ -48,7 +48,30 @@ visitor:
   timezone_id: UTC
   page_timeout_seconds: 30
   pacing:
+    profile: production
     rate_limit_per_hour: 90
+    burst_cooldown_interval: 5
+    burst_cooldown_range: [30.0, 90.0]
+    content_wait_timeout_ms: 10000
+    content_wait_reaction_range: [0.5, 1.5]
+    content_wait_with_mouse_move: true
+    post_login_warmup: true
+    profiles:
+      production:
+        min_seconds: 2.0
+        max_seconds: 5.0
+        distraction_chance: 0.10
+        distraction_min_seconds: 15.0
+        distraction_max_seconds: 45.0
+      recon:
+        min_seconds: 0.8
+        max_seconds: 1.8
+      auth:
+        min_seconds: 0.5
+        max_seconds: 1.0
+      disabled:
+        min_seconds: 0.0
+        max_seconds: 0.0
   fingerprint:
     viewport_width_range: [1260, 1380]
     viewport_height_range: [780, 900]

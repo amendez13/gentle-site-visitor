@@ -9,10 +9,44 @@ IntRange = tuple[int, int]
 
 
 @dataclass(frozen=True)
-class PacingConfig:
-    """Low-level pacing settings consumed by the browser layer."""
+class DelayProfileSpec:
+    """Named delay-profile parameters consumed by the pacing layer."""
 
+    min_seconds: float
+    max_seconds: float
+    distraction_chance: float = 0.0
+    distraction_min_seconds: float = 0.0
+    distraction_max_seconds: float = 0.0
+
+
+def default_delay_profiles() -> dict[str, DelayProfileSpec]:
+    """Return the built-in delay-profile registry."""
+    return {
+        "production": DelayProfileSpec(
+            min_seconds=2.0,
+            max_seconds=5.0,
+            distraction_chance=0.10,
+            distraction_min_seconds=15.0,
+            distraction_max_seconds=45.0,
+        ),
+        "recon": DelayProfileSpec(min_seconds=0.8, max_seconds=1.8),
+        "auth": DelayProfileSpec(min_seconds=0.5, max_seconds=1.0),
+        "disabled": DelayProfileSpec(min_seconds=0.0, max_seconds=0.0),
+    }
+
+
+@dataclass(frozen=True)
+class PacingConfig:
+    """Low-level pacing settings consumed by browser and pacing layers."""
+
+    profile: str = "production"
+    profiles: dict[str, DelayProfileSpec] = field(default_factory=default_delay_profiles)
     rate_limit_per_hour: int = 90
+    burst_cooldown_interval: int = 5
+    burst_cooldown_range: tuple[float, float] = (30.0, 90.0)
+    content_wait_timeout_ms: int = 10000
+    content_wait_reaction_range: tuple[float, float] = (0.5, 1.5)
+    content_wait_with_mouse_move: bool = True
     post_login_warmup: bool = True
 
 

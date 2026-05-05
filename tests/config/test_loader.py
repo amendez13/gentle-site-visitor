@@ -21,7 +21,19 @@ visitor:
   page_timeout_seconds: 45
   manual_verification_timeout_seconds: 120
   pacing:
+    profile: custom
+    profiles:
+      custom:
+        min_seconds: 1.0
+        max_seconds: 1.0
+      production:
+        distraction_chance: 0.2
     rate_limit_per_hour: 12
+    burst_cooldown_interval: 4
+    burst_cooldown_range: [10.0, 20.0]
+    content_wait_timeout_ms: 2500
+    content_wait_reaction_range: [0.1, 0.2]
+    content_wait_with_mouse_move: false
     post_login_warmup: false
   fingerprint:
     viewport_width_range: [1000, 1100]
@@ -59,7 +71,15 @@ sites:
     visitor, site = load_config(config_path, "example")
 
     assert visitor.headless is False
+    assert visitor.pacing.profile == "custom"
+    assert visitor.pacing.profiles["custom"].min_seconds == 1.0
+    assert visitor.pacing.profiles["production"].distraction_chance == 0.2
     assert visitor.pacing.rate_limit_per_hour == 12
+    assert visitor.pacing.burst_cooldown_interval == 4
+    assert visitor.pacing.burst_cooldown_range == (10.0, 20.0)
+    assert visitor.pacing.content_wait_timeout_ms == 2500
+    assert visitor.pacing.content_wait_reaction_range == (0.1, 0.2)
+    assert visitor.pacing.content_wait_with_mouse_move is False
     assert visitor.pacing.post_login_warmup is False
     assert visitor.manual_verification_timeout_seconds == 120
     assert visitor.fingerprint.viewport_width_range == (1000, 1100)
@@ -206,6 +226,11 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
         ("visitor:\n  fingerprint:\n    viewport_width_range: [100]\nsites:\n  example: {}\n", "Range values"),
         ("visitor:\n  fingerprint:\n    viewport_width_range: [0, 100]\nsites:\n  example: {}\n", "positive"),
         ("visitor:\n  pacing: bad\nsites:\n  example: {}\n", "visitor.pacing"),
+        ("visitor:\n  pacing:\n    profiles: bad\nsites:\n  example: {}\n", "visitor.pacing.profiles"),
+        (
+            "visitor:\n  pacing:\n    content_wait_reaction_range: [1.0]\nsites:\n  example: {}\n",
+            "Range values",
+        ),
         ("visitor:\n  headless: flase\nsites:\n  example: {}\n", "visitor.headless"),
         (
             "sites:\n  example:\n    auth:\n      username_selectors: '#username'\n",

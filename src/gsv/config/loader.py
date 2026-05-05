@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from gsv.config.model import (
+    DelayProfileSpec,
     FingerprintConfig,
     IntRange,
     ObservabilityConfig,
@@ -115,7 +116,19 @@ def _parse_pacing(raw: Any) -> PacingConfig:
     defaults = PacingConfig()
     data = _mapping(raw, "visitor.pacing", allow_none=True)
     return PacingConfig(
+        profile=_as_str(data.get("profile"), defaults.profile),
+        profiles=_parse_delay_profiles(data.get("profiles"), defaults.profiles),
         rate_limit_per_hour=max(1, int(data.get("rate_limit_per_hour", defaults.rate_limit_per_hour))),
+        burst_cooldown_interval=max(1, int(data.get("burst_cooldown_interval", defaults.burst_cooldown_interval))),
+        burst_cooldown_range=_parse_float_range(data.get("burst_cooldown_range"), defaults.burst_cooldown_range),
+        content_wait_timeout_ms=max(1, int(data.get("content_wait_timeout_ms", defaults.content_wait_timeout_ms))),
+        content_wait_reaction_range=_parse_float_range(
+            data.get("content_wait_reaction_range"), defaults.content_wait_reaction_range
+        ),
+        content_wait_with_mouse_move=_as_bool(
+            _with_default(data.get("content_wait_with_mouse_move"), defaults.content_wait_with_mouse_move),
+            "visitor.pacing.content_wait_with_mouse_move",
+        ),
         post_login_warmup=_as_bool(
             _with_default(data.get("post_login_warmup"), defaults.post_login_warmup), "visitor.pacing.post_login_warmup"
         ),
@@ -189,6 +202,59 @@ def _parse_int_range(value: Any, default: IntRange) -> IntRange:
     if low > high:
         low, high = high, low
     return (low, high)
+
+
+def _parse_float_range(value: Any, default: tuple[float, float]) -> tuple[float, float]:
+    if value is None:
+        return default
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ConfigError("Range values must be two-item lists")
+    low = float(value[0])
+    high = float(value[1])
+    if low < 0 or high < 0:
+        raise ConfigError("Range values must be non-negative")
+    if low > high:
+        low, high = high, low
+    return (low, high)
+
+
+def _parse_delay_profiles(value: Any, defaults: dict[str, DelayProfileSpec]) -> dict[str, DelayProfileSpec]:
+    if value is None:
+        return dict(defaults)
+    if not isinstance(value, dict):
+        raise ConfigError("visitor.pacing.profiles must be a mapping")
+
+    registry = dict(defaults)
+    for name, raw_spec in value.items():
+        if not isinstance(name, str):
+            raise ConfigError("visitor.pacing.profiles keys must be strings")
+        data = _mapping(raw_spec, f"visitor.pacing.profiles.{name}")
+        default = registry.get(name, DelayProfileSpec(min_seconds=0.0, max_seconds=0.0))
+        spec = DelayProfileSpec(
+            min_seconds=max(0.0, float(data.get("min_seconds", default.min_seconds))),
+            max_seconds=max(0.0, float(data.get("max_seconds", default.max_seconds))),
+            distraction_chance=min(1.0, max(0.0, float(data.get("distraction_chance", default.distraction_chance)))),
+            distraction_min_seconds=max(0.0, float(data.get("distraction_min_seconds", default.distraction_min_seconds))),
+            distraction_max_seconds=max(0.0, float(data.get("distraction_max_seconds", default.distraction_max_seconds))),
+        )
+        if spec.min_seconds > spec.max_seconds:
+            spec = DelayProfileSpec(
+                min_seconds=spec.max_seconds,
+                max_seconds=spec.min_seconds,
+                distraction_chance=spec.distraction_chance,
+                distraction_min_seconds=spec.distraction_min_seconds,
+                distraction_max_seconds=spec.distraction_max_seconds,
+            )
+        if spec.distraction_min_seconds > spec.distraction_max_seconds:
+            spec = DelayProfileSpec(
+                min_seconds=spec.min_seconds,
+                max_seconds=spec.max_seconds,
+                distraction_chance=spec.distraction_chance,
+                distraction_min_seconds=spec.distraction_max_seconds,
+                distraction_max_seconds=spec.distraction_min_seconds,
+            )
+        registry[name] = spec
+    return registry
 
 
 def _parse_str_list(value: Any, name: str) -> list[str]:
