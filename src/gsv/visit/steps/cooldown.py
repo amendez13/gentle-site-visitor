@@ -15,6 +15,7 @@ class BurstCooldown:
     reset: bool = False
     name: str = "burst_cooldown"
     content_marker: str | None = None
+    skip_runner_burst_tick: bool = True
 
     async def execute(self, ctx: VisitContext) -> StepResult:
         """Trigger an explicit burst tick or reset the counter."""

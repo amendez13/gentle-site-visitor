@@ -58,11 +58,17 @@ class ForEach:
         items = await self.items_extractor(ctx.page)
         limited_items = items[: self._resolved_limit()]
         iteration_results: list[list[StepResult]] = []
+        failed = False
+        errors: list[str] = []
 
         for item in limited_items:
             body = self.body_factory(item)
             sub_result = await run_subplan(ctx, body)
             results = list(sub_result.step_results)
+            if sub_result.outcome != "completed":
+                failed = True
+                if sub_result.error is not None:
+                    errors.append(sub_result.error)
             if self.hydration_retry and self._needs_hydration_retry(results):
                 ctx.increment("hydration_retry_attempts")
                 await self._hydrate_item(ctx, item)
@@ -71,11 +77,21 @@ class ForEach:
                 results.extend(retry_results)
                 if self._needs_hydration_retry(retry_results) or retry_result.outcome != "completed":
                     ctx.increment("hydration_retry_giveup_count")
+                    failed = True
+                    if retry_result.error is not None:
+                        errors.append(retry_result.error)
+                    elif self._needs_hydration_retry(retry_results):
+                        errors.append("hydration retry did not produce a viable item")
                 else:
                     ctx.increment("hydration_retry_success_count")
             iteration_results.append(results)
 
-        return StepResult(name=self.name, outcome="ok", extracted=iteration_results)
+        return StepResult(
+            name=self.name,
+            outcome="fail" if failed else "ok",
+            error="; ".join(errors) if errors else None,
+            extracted=iteration_results,
+        )
 
     def _resolved_limit(self) -> int | None:
         if self.limit is not None:

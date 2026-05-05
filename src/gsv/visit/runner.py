@@ -60,9 +60,10 @@ class VisitRunner:
 
         await self.ctx.pacing.content_wait.maybe_run(self.ctx.page, step.content_marker)
         await self.ctx.pacing.delay_profile.sleep()
-        cooldown = await self.ctx.pacing.burst.tick(boundary=f"{step.name}_burst")
-        if cooldown > 0:
-            self.ctx.increment("cooldowns")
+        if not bool(getattr(step, "skip_runner_burst_tick", False)):
+            cooldown = await self.ctx.pacing.burst.tick(boundary=f"{step.name}_burst")
+            if cooldown > 0:
+                self.ctx.increment("cooldowns")
         await self._cancel_check(f"{step.name}_post")
 
         result.duration_seconds = time.monotonic() - start

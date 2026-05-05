@@ -89,6 +89,28 @@ async def test_for_each_respects_limit(visit_ctx) -> None:  # type: ignore[no-un
 
 
 @pytest.mark.asyncio
+async def test_for_each_fails_when_iteration_body_fails(visit_ctx) -> None:  # type: ignore[no-untyped-def]
+    """Nested subplan failure propagates through the ForEach parent result."""
+
+    @dataclass
+    class FailingStep:
+        name: str = "failing"
+        content_marker: str | None = None
+
+        async def execute(self, _ctx: VisitContext) -> StepResult:
+            raise RuntimeError("extract failed")
+
+    async def items(_page: Any) -> list[int]:
+        return [1]
+
+    result = await VisitRunner(visit_ctx).run(VisitPlan([ForEach(items, lambda _item: [FailingStep()])]))
+
+    assert result.outcome == "failed"
+    assert result.error == "extract failed"
+    assert result.step_results[0].outcome == "fail"
+
+
+@pytest.mark.asyncio
 async def test_record_event_writes_to_sink(visit_ctx) -> None:  # type: ignore[no-untyped-def]
     """RecordEvent writes through the configured evidence sink."""
     events: list[tuple[str, dict[str, Any]]] = []
