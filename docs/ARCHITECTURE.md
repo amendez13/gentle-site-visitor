@@ -289,12 +289,15 @@ This is the load-bearing abstraction. The application writes plain "do step X" c
 ```python
 class VisitContext:
     page: Page
-    session: Session
     pacing: Pacing                # delay profile, burst, rate limiter
-    cancellation: CancellationMonitor
-    recorder: SessionRecorder
-    config: VisitConfig
-    site: SiteAdapter
+    config: VisitorConfig
+    site: SiteConfig
+    session: Session | None
+    site_adapter: SiteAuthAdapter | None
+    sink: EvidenceSink
+    cancellation: Cancellation | None
+    extracted: dict[str, Any]
+    counters: dict[str, int]
 
 class VisitStep(Protocol):
     name: str                     # used as boundary suffix, telemetry
@@ -313,12 +316,16 @@ class VisitPlan:
 - `Type(selector, value, secret=False)`
 - `Scroll(times=1, magnitude_range=(140, 420))`
 - `Dwell(min_seconds=7.0, max_seconds=10.0)`
-- `WaitFor(selector, timeout_ms=10000)`
+- `WaitFor(selector, timeout_ms=10000, retries=0)`
 - `Extract(extractor: Callable[[Page], Awaitable[T]])` — returns extracted data into the context
 - `Branch(condition, then_steps, else_steps)`
 - `ForEach(iterable_extractor, body_steps, max_items=None, hydration_retry=False)`
 - `BurstCooldown.maybe()` — explicit if app wants to hint a cooldown point
 - `RecordEvent(event_type, payload)` — appends a row to a per-run JSONL ("evidence" stream)
+
+**Evidence sinks:** `NullEvidenceSink` is the default and drops events without
+filesystem state. `JsonlEvidenceSink` appends one JSON object per line and is
+available for S5 to wire into session bundles.
 
 **Hydration-aware ForEach** is the analog of CareerExplorer's virtualized-card retry: when the per-iteration `extract` returns a non-viable item, the runtime checks for a hydration hint, scrolls into view, waits briefly, and retries once. Counters are emitted at the end (`hydration_retry_success_count`, etc.).
 
@@ -584,12 +591,13 @@ gentle-site-visitor/
 │       │   ├── context.py
 │       │   ├── plan.py
 │       │   ├── runner.py
+│       │   ├── sinks.py           # EvidenceSink implementations
 │       │   └── steps/
 │       │       ├── nav.py          # Navigate, WaitFor
 │       │       ├── act.py          # Click, Type, Scroll, Dwell
 │       │       ├── extract.py      # Extract
 │       │       ├── flow.py         # Branch, ForEach, RecordEvent
-│       │       └── cooldown.py     # BurstCooldown.maybe
+│       │       └── cooldown.py     # BurstCooldown
 │       ├── run/
 │       │   ├── controller.py       # RunController main loop
 │       │   ├── lease_client.py     # HTTP client for /api/worker/lease/*
