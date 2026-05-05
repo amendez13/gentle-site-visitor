@@ -52,6 +52,7 @@ visitor:
     api_key: ${GSV_API_KEY}
 sites:
   example:
+    app_module: apps.example
     storage_path: "~/custom-example"
     locale: fr-FR
     allowed_host_globs:
@@ -93,6 +94,7 @@ sites:
     assert visitor.observability.har_content == "embed"
     assert visitor.worker.api_key == "secret"
     assert site.name == "example"
+    assert site.app_module == "apps.example"
     assert site.locale == "fr-FR"
     assert site.timezone_id == "Europe/London"
     assert site.page_timeout_seconds == 45

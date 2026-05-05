@@ -34,7 +34,7 @@ Run the reference app against the example site:
 ```bash
 gsv config validate --site example
 gsv run example --once --headed --observability=always
-gsv sessions list --site example
+gsv sessions list --site example        # reads data/sessions/example by default
 gsv sessions inspect --site example --latest
 ```
 
@@ -84,6 +84,7 @@ visitor:
 
 sites:
   example:
+    app_module: apps.example            # optional; defaults to apps.<site>
     auth:
       login_url: "https://example.com/login"
       auth_marker_url: "https://example.com/home"

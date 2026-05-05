@@ -2,7 +2,7 @@
 
 > **Slice:** S6 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §11 Operational playbook](../ARCHITECTURE.md#11-operational-playbook-skeleton).
-> **Status:** Not started. **Depends on S5.**
+> **Status:** Implemented. **Depends on S5.**
 
 ---
 
@@ -34,6 +34,7 @@ gsv --version
 | Path | Source | Notes |
 |---|---|---|
 | `src/gsv/cli/__init__.py` | new | Entry point: `cli()`. |
+| `src/gsv/cli/_common.py` | new | Shared path resolution, redaction, and exit-code helpers for command modules. |
 | `src/gsv/cli/main.py` | new | Top-level Click group; `--version`, `--config`, `--site` global options; subcommand registration. |
 | `src/gsv/cli/run.py` | new | `gsv run` command. Loads config, opens recorder, builds runner, executes a `VisitPlan` factory imported from the configured app. |
 | `src/gsv/cli/sessions.py` | from CE `src/sessions.py` lines 271–446 (Adapt) | `gsv sessions list/open/inspect/purge`. |
@@ -47,9 +48,10 @@ gsv --version
 | Path | Purpose |
 |---|---|
 | `tests/cli/test_main.py` | `gsv --version` prints the version; `gsv --help` lists registered commands. |
+| `tests/cli/test_apps.py` | Registry lookup/autoload behavior. |
 | `tests/cli/test_run.py` | `gsv run <site> --once` with a stub app loads config, runs a synthetic `VisitPlan`, writes a session bundle. |
 | `tests/cli/test_sessions.py` | List/inspect/purge against a synthetic sessions dir; `--json` output is well-formed; prefix resolution (`gsv sessions inspect 2026-`) handles ambiguity. |
-| `tests/cli/test_config_validate.py` | Valid config returns 0; missing site key returns 2; missing `${ENV}` returns 2 with a clear message. |
+| `tests/cli/test_config_validate.py` | Valid config returns 0; missing site key returns 20; missing `${ENV}` returns 20 with a clear message. |
 | `tests/cli/test_plan.py` | Placeholder behavior in S6; S8 will replace with real assertions. |
 
 ---
@@ -100,8 +102,8 @@ _REGISTRY: dict[str, PlanFactory] = {}
 def register_app(name: str, factory: PlanFactory) -> None: ...
 def get_app(name: str) -> PlanFactory: ...
 
-def autoload(visitor_config: VisitorConfig) -> None:
-    """Import every module under `apps.<name>` listed in visitor_config.apps_packages."""
+def autoload(site: SiteConfig) -> None:
+    """Import `sites.<name>.app_module` or `apps.<name>` when available."""
 ```
 
 Apps register themselves on import:
@@ -113,7 +115,7 @@ from .visit import build_plan
 register_app("example", build_plan)
 ```
 
-`gsv run <site>` looks up the app by site name (Open question Q2: the lookup key — site name vs explicit app name).
+`gsv run <site>` looks up the app by site name. `sites.<name>.app_module` is an optional import override for the uncommon case where a different module registers that site.
 
 ### Step 6.3 — `gsv run`
 
@@ -133,16 +135,16 @@ def run_command(ctx, site, once, headed, observability, profile): ...
 Flow:
 
 1. Load config from `ctx.obj["config_path"]`. Apply CLI overrides.
-2. `apps.autoload(visitor_config)`.
+2. `apps.autoload(site_config)`.
 3. Resolve `plan_factory = apps.get_app(site)`.
-4. Resolve `Credentials.from_env(site_config.credentials_env_prefix)` if the site requires auth.
+4. Resolve `Credentials.from_env(<SITE>_...)` if the site requires auth.
 5. Build `BrowserManager(visitor, site)`; build `Session(browser, site_adapter, visitor)`.
-6. If `observability != "off"`: open `SessionRecorder.open(...)`, attach to `BrowserManager`, set `ctx.recorder` for the runner.
+6. If `observability != "off"`: open `SessionRecorder.open(...)` under `data/sessions/<site>/`, attach it to `BrowserManager`, set `ctx.recorder` for the runner.
 7. `await session.start()`; if not authenticated, `await session.login(credentials)`. Handle `False` returns by raising a runtime error with exit code 10 (auth) — already in the architecture exit-code table.
 8. `await session.post_login_warmup()`.
 9. `plan = plan_factory(visit_ctx)`. Run via `VisitRunner(visit_ctx).run(plan)`.
-10. `recorder.finalize(outcome=visit_result.outcome, error=visit_result.error)`.
-11. `cleanup_session_artifacts_on_success(recorder.session_dir, mode=visitor.observability.mode)`.
+10. Stop trace/HAR/video recording so browser artifacts are registered.
+11. `recorder.finalize(outcome=visit_result.outcome, error=visit_result.error)`.
 12. `await session.close()`.
 
 Exit codes match the architecture: 0 ok, 1 runtime, 10 auth, 20 config.
@@ -151,7 +153,7 @@ Exit codes match the architecture: 0 ok, 1 runtime, 10 auth, 20 config.
 
 Port CE Click commands from `src/sessions.py` lines 271–446. Generalizations:
 
-- Default `--sessions-dir` resolves to `<config.observability.sessions_dir>` from the loaded config; the `--sessions-dir` flag is a manual override.
+- Default `--sessions-dir` resolves to `<visitor.observability.sessions_dir>/<site>` when a site is selected, or the base sessions directory for all-site listing. The `--sessions-dir` flag is a manual override.
 - `list` columns: `SESSION_ID  RUN   SITE  OUTCOME  DURATION  COUNTERS  ARTIFACTS`.
 - `open` falls back to printing the `trace.zip` path if `npx playwright show-trace` is missing (no `which npx` blocking).
 - `inspect`: also pretty-prints `counters` as a sorted key-value list, since the CE manifest didn't have rich counters.
@@ -167,7 +169,7 @@ Port CE Click commands from `src/sessions.py` lines 271–446. Generalizations:
 @click.pass_context
 def show_command(ctx, date):
     click.echo("gsv plan show: schedule integration arrives in S8.", err=True)
-    raise click.exceptions.Exit(2)
+    return
 ```
 
 S8 replaces the body with real `compute_daily_plan` output rendering.
@@ -198,14 +200,14 @@ The CLI initializes logging via `gsv.logging` (extend the template's existing `s
 
 ## 5. Acceptance criteria
 
-- [ ] `pip install -e .` installs the `gsv` console script; `gsv --version` prints the package version.
-- [ ] `pytest tests/cli` is green; coverage ≥ 85% (CLI tests are integration-flavored).
-- [ ] `gsv run example --once --headed --observability=always` (with the stub app from `tests/cli/test_run.py::stub_app`) runs end-to-end and writes a session bundle.
-- [ ] `gsv sessions list` against a directory of synthetic bundles prints a stable table; `--json` produces parseable output.
-- [ ] `gsv sessions purge --dry-run` reports candidates without deleting.
-- [ ] `gsv config validate config/config.yaml` returns exit 0 on valid; non-zero with a clear message otherwise.
-- [ ] Secrets are redacted in `gsv config validate` output.
-- [ ] `gsv` exits with code 10 on auth failure (login returns `False`); 20 on config errors.
+- [x] `pip install -e .` installs the `gsv` console script; `gsv --version` prints the package version.
+- [x] `pytest tests/cli` is green; coverage ≥ 85% (CLI tests are integration-flavored).
+- [x] `gsv run example --once --headed --observability=always` (with the stub app from `tests/cli/test_run.py`) runs end-to-end and writes a session bundle.
+- [x] `gsv sessions list` against a directory of synthetic bundles prints a stable table; `--json` produces parseable output.
+- [x] `gsv sessions purge --dry-run` reports candidates without deleting.
+- [x] `gsv config validate config/config.yaml` returns exit 0 on valid; non-zero with a clear message otherwise.
+- [x] Secrets are redacted in `gsv config validate` output.
+- [x] `gsv` exits with code 10 on auth failure (login returns `False`); 20 on config errors.
 
 ---
 
@@ -229,10 +231,10 @@ The CLI initializes logging via `gsv.logging` (extend the template's existing `s
 
 | ID | Question | Recommendation | Resolve in |
 |---|---|---|---|
-| Q1 | `data/sessions/` vs `data/sessions/<site>/`? | Per-site subdirectory: `data/sessions/<site>/<UTC>_run-<id>/`. Cleaner under multi-site usage; CE used a flat dir but only ever ran one site. | S6 |
-| Q2 | App lookup: by site name (`example`) or explicit app name in YAML (`apps.example`)? | Site name is the natural identifier. Add `sites.<name>.app_module: apps.example` for the rare case where one app serves multiple sites. | S6 |
-| Q3 | Should `gsv run` accept `--credentials-from-env-prefix` as a CLI override, or only YAML? | YAML. CLI overrides for credentials are a footgun. | S6 |
-| Q4 | When `npx playwright show-trace` is missing on the operator's machine, fallback path? | Print the absolute `trace.zip` path with the suggested manual command. Do not crash. | S6 |
+| Q1 | `data/sessions/` vs `data/sessions/<site>/`? | Resolved: `gsv run` writes per-site subdirectories and `gsv sessions --site` reads them by default. | S6 |
+| Q2 | App lookup: by site name (`example`) or explicit app name in YAML (`apps.example`)? | Resolved: registry lookup is by site name; `sites.<name>.app_module` is an optional import override. | S6 |
+| Q3 | Should `gsv run` accept `--credentials-from-env-prefix` as a CLI override, or only YAML? | Resolved: no CLI credential override; credential env prefix is derived from the site name. | S6 |
+| Q4 | When `npx playwright show-trace` is missing on the operator's machine, fallback path? | Resolved: print the absolute `trace.zip` path and suggested manual command. | S6 |
 
 ---
 
@@ -242,5 +244,5 @@ The CLI initializes logging via `gsv.logging` (extend the template's existing `s
 - [ ] `gsv run` exits with the documented codes; tests assert each non-zero path.
 - [ ] Secrets are redacted in `config validate` output (test covers `password`, `api_key`, `token`, `secret`).
 - [ ] Subcommand registration uses `register(group)` factories, not module-level decorators on the global group.
-- [ ] `gsv plan show` placeholder prints to stderr and exits 2 (caller knows it's not implemented).
+- [ ] `gsv plan show` placeholder prints to stderr and exits 0 (matching issue #16 acceptance criteria).
 - [ ] `console_scripts` entry in `pyproject.toml` is updated; `pip install -e .` works.
