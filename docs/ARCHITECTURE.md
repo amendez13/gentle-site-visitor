@@ -1,6 +1,6 @@
 # Gentle Site Visitor — Architecture and Design
 
-> **Status:** v0 design draft. No implementation yet.
+> **Status:** v0 implemented baseline. Larger hardening candidates are tracked as follow-up issues.
 > **Audience:** future maintainers and AI coding agents building applications on top of this skeleton.
 > **Sources:** distilled from the CareerExplorer codebase (`src/scraper/browser.py`, `src/scraper/auth.py`, `src/sessions.py`, `src/worker.py`, `src/orchestrator_plan.py`, `src/config.py`, `docs/LINKEDIN.md`, `docs/ARCHITECTURE.md`). See [notes/_findings.md](../notes/_findings.md) for raw extraction notes.
 
@@ -415,7 +415,8 @@ class SessionManifest:
     duration_seconds: float
     outcome: Literal["completed", "failed", "cancelled", "blocked"]
     error: str | None
-    counters: dict[str, int]    # framework + app contributions
+    framework_counters_version: int = 1
+    counters: dict[str, int]    # app keys plus framework.* counter copies
     browser: BrowserMeta        # chromium_version, user_agent, headless, viewport
     artifacts: dict[str, str]   # name -> relative path
 ```
@@ -504,7 +505,9 @@ sites:
       - "**/*example.com/**"
     locale: es-ES                  # site override
     timezone_id: Europe/Madrid     # site override
-    rate_limit_per_hour: 60        # tighter than default
+    rate_limit:
+      requests_per_hour: 60        # optional; omitted cap inherits visitor default
+      window_minutes: 60
     platform_caps:
       pagination_max_offset: null  # site-specific, optional
 ```
@@ -523,7 +526,7 @@ Single file per site: `<storage_path>/state.json`. Playwright's `context.storage
 
 ### 5.2 Session manifest
 
-JSON written at run end (or on cancellation). Schema in §4.7. The `counters` dict is open: framework contributes (e.g., `requests_made`, `cooldowns`, `hydration_retry_*`); apps contribute domain-specific counts (e.g., `items_extracted`, `items_skipped_duplicate`).
+JSON written at run end (or on cancellation). Schema in §4.7. The `counters` dict is open: framework contributes flat counters for backward compatibility and stable `framework.*` copies for downstream tooling (e.g., `framework.requests_made`, `framework.cooldowns`, `framework.hydration_retry_*`); apps contribute domain-specific counts (e.g., `items_extracted`, `items_skipped_duplicate`). The `framework_counters_version` field versions the framework-prefixed counter contract.
 
 ### 5.3 Evidence stream
 
@@ -747,7 +750,7 @@ gsv sessions open <prefix>              # Playwright Trace Viewer
 
 ## 12. Roadmap
 
-This skeleton is delivered in slices. Each slice is independently shippable.
+This skeleton is delivered in slices. Each slice is independently shippable. S1-S10 form the v0 baseline; larger S10 hardening items that need their own design/review cycles are tracked as follow-up issues.
 
 | Slice | Deliverables | Depends on |
 |---|---|---|
@@ -760,7 +763,7 @@ This skeleton is delivered in slices. Each slice is independently shippable.
 | **S7. Run + lease + cancel** | `gsv.run.*`, dev server | S2, S4 |
 | **S8. Scheduling** | `gsv.schedule.*` (port `orchestrator_plan.py`) | S7 |
 | **S9. Reference app** | `apps/example` | S1-S8 |
-| **S10. Hardening** | per-site rate limit overrides, platform-cap modules, integrity-audit-style probes | S9 |
+| **S10. Hardening** | per-site rate-limit overrides, framework counter schema/versioning, v0 docs cleanup; pagination/probes split to follow-ups | S9 |
 
 S1-S6 can ship without S7 (the visit runner can be driven directly from the CLI without lease/cancel). That gives a usable subset early.
 
@@ -795,6 +798,6 @@ To resolve before/while implementing slices:
 2. **Multiple sessions per worker.** The skeleton assumes one site session at a time. Multi-site workers require a session pool — out of scope for v0.
 3. **Proxy support.** Currently expected to be the operator's network responsibility. Should the skeleton expose a proxy field for explicit dual-IP testing?
 4. **Schedule sources of truth.** Resolved in S8: YAML profiles are the v0 source of truth; database-backed profiles remain a later extension.
-5. **Manifest evolution.** Resolved in S5: manifests use a stable top-level shape with open-ended `counters: dict[str, int]`; no schema-version field is added for counter-only evolution.
+5. **Manifest evolution.** Resolved in S10: manifests use a stable top-level shape with open-ended `counters: dict[str, int]`, plus `framework_counters_version: 1` for the framework-prefixed counter contract.
 6. **Test strategy for non-deterministic primitives.** Resolved in S1 for the browser layer: delay, dwell, mouse, click, typing, scroll, and viewport helpers accept an injected seeded RNG. S8 applies the same pattern to scheduling.
 7. **Per-app state.** Should the skeleton expose a small KV store under the session dir for app-defined cross-run state, or leave it to apps?

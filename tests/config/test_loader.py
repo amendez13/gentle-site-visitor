@@ -69,6 +69,9 @@ sites:
     app_module: apps.example
     storage_path: "~/custom-example"
     locale: fr-FR
+    rate_limit:
+      requests_per_hour: 30
+      window_minutes: 15
     allowed_host_globs:
       - "**/*.example.test/**"
     auth:
@@ -121,6 +124,9 @@ sites:
     assert site.timezone_id == "Europe/London"
     assert site.page_timeout_seconds == 45
     assert site.allowed_host_globs == ["**/*.example.test/**"]
+    assert site.rate_limit is not None
+    assert site.rate_limit.requests_per_hour == 30
+    assert site.rate_limit.window_minutes == 15
     assert site.storage_path.endswith("custom-example")
     assert site.auth.login_url == "https://example.test/login"
     assert site.auth.auth_marker_url == "https://example.test/home"
@@ -146,6 +152,47 @@ sites:
     assert visitor.locale == "en-US"
     assert site.storage_path == "data/docs/state"
     assert site.storage_dir is not None
+    assert site.rate_limit is None
+
+
+def test_load_config_rejects_invalid_site_rate_limit(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Per-site rate-limit overrides must be positive mappings."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+sites:
+  example:
+    rate_limit:
+      requests_per_hour: 0
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="sites.example.rate_limit.requests_per_hour"):
+        load_config(config_path, "example")
+
+
+def test_load_config_partial_site_rate_limit_inherits_visitor_cap(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Partial site rate-limit overrides keep the visitor request cap."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+visitor:
+  pacing:
+    rate_limit_per_hour: 12
+sites:
+  example:
+    rate_limit:
+      window_minutes: 15
+""",
+        encoding="utf-8",
+    )
+
+    _visitor, site = load_config(config_path, "example")
+
+    assert site.rate_limit is not None
+    assert site.rate_limit.requests_per_hour == 12
+    assert site.rate_limit.window_minutes == 15
 
 
 def test_load_config_missing_required_env_raises(tmp_path) -> None:  # type: ignore[no-untyped-def]

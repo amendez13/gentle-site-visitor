@@ -2,7 +2,7 @@
 
 > **Slice:** S10 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §3](../ARCHITECTURE.md#3-layered-architecture), [ARCHITECTURE.md §4.7](../ARCHITECTURE.md#47-observability-layer-gsvobservability).
-> **Status:** Not started. **Depends on S9.**
+> **Status:** Implemented as a focused v0 hardening pass. Larger optional items split to follow-up issues. **Depends on S9.**
 
 ---
 
@@ -16,8 +16,8 @@ After this slice:
 
 1. An app can override `requests_per_hour` per site in YAML and the override propagates into `RateLimiter` at construction time.
 2. `manifest.json` exposes the framework-level counters (`hydration_retries`, `cooldowns`, `cancellation_boundary`, ...) under a stable schema.
-3. `Pagination`-style caps (max-pages-per-list, max-results-per-page) are first-class on `ForEach` and surface to the manifest as `iterations_completed` / `iterations_capped`.
-4. A new opt-in `IntegrityProbe` runs in recon mode at most once per N runs and writes findings to evidence — without the framework knowing what "integrity" means for any given site.
+3. S10 scope decisions are explicit: larger pagination, integrity-probe, and app-contract polish items are moved to follow-up issues instead of being hidden inside one broad PR.
+4. v0 release docs identify the implemented baseline and remaining hardening candidates.
 
 ---
 
@@ -36,6 +36,8 @@ After this slice:
 This is genuinely backward-compatible: the dataclass already exists in S1 with sensible defaults, S10 just teaches it to accept overrides without changing the call sites.
 
 ### 2.2 Pagination + platform caps
+
+**Deferred to [#42](https://github.com/amendez13/gentle-site-visitor/issues/42).**
 
 `ForEach` (S4) iterates over a selector. S10 adds two caps:
 
@@ -73,6 +75,8 @@ This resolves [ARCHITECTURE.md §14 Q5](../ARCHITECTURE.md#14-open-questions) (m
 
 ### 2.4 Integrity probe (recon-mode)
 
+**Deferred to [#43](https://github.com/amendez13/gentle-site-visitor/issues/43).**
+
 Generalized analogue of LinkedIn's panel-probe: an opt-in step that visits a stable, app-defined URL in **recon delay profile** (faster timings, no humanization), extracts a small fingerprint, and writes it to evidence. Use cases: detect site-wide structural drift, confirm the auth marker still resolves, sanity-check that the site renders at all before a long visit.
 
 ```python
@@ -97,6 +101,8 @@ The framework provides the *machinery*; apps provide the *content*. No site-spec
 
 ### 2.5 Discoveries from S9
 
+Resolved in this PR where they are schema/docs concerns; remaining runtime behavior polish is deferred to [#41](https://github.com/amendez13/gentle-site-visitor/issues/41).
+
 [S9 § 6](S09-reference-app.md#6-discoveries-feeds-s10) is expected to surface ~3-5 small gaps. This slice's task list grows by however many of those rows resolve to "yes, defer to S10". Common candidates we anticipate but don't promise:
 
 - A `Back` step (rather than `Navigate(url='back')`).
@@ -107,6 +113,8 @@ The framework provides the *machinery*; apps provide the *content*. No site-spec
 Each becomes a sub-deliverable inside S10 with its own short test. Nothing here merges without the matching test.
 
 ### 2.6 Pacing extras
+
+**Deferred to [#43](https://github.com/amendez13/gentle-site-visitor/issues/43).**
 
 Two minor additions that fell out of S3 scope:
 
@@ -147,7 +155,7 @@ S10 items are independent; pick whichever pairs with the developer's morning. Re
 5. Discoveries from S9 (one PR per discovery, kept small).
 6. Pacing extras (smallest; nice closer).
 
-Each item is its own commit, all under one S10 PR.
+Each focused item is delivered in this S10 PR; larger items above are linked follow-up issues.
 
 ### Step 10.2 — Schema lock-in
 
@@ -190,8 +198,8 @@ S10 is the last slice, so it's also the doc-cleanup slice:
 - [ ] `apps/example/` runs identically before and after the slice (manifest counter sets equal except for any new keys under `framework.*`).
 - [ ] `manifest.json` includes a `framework_counters_version: 1` field.
 - [ ] Per-site rate-limit override demonstrated in a test: setting `requests_per_hour: 30` for site `example` yields a `RateLimiter` initialized with 30, while the visitor default of 60 stays for other sites.
-- [ ] `ForEach(pagination=...)` advances at most `max_pages` pages; evidence shows one `pagination_advance` per advance.
-- [ ] `IntegrityProbe(cadence_runs=10)` runs on exactly 1 of every 10 runs (verified with deterministic counter).
+- [ ] Pagination/platform-cap work is tracked in [#42](https://github.com/amendez13/gentle-site-visitor/issues/42).
+- [ ] Integrity-probe/per-step-pacing work is tracked in [#43](https://github.com/amendez13/gentle-site-visitor/issues/43).
 - [ ] At least 3 of the [S9 § 6 Discoveries](S09-reference-app.md#6-discoveries-feeds-s10) rows are addressed; remaining rows are closed with "won't do" + rationale or moved to a follow-up issue.
 - [ ] [ARCHITECTURE.md](../ARCHITECTURE.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) reflect the post-S10 state.
 

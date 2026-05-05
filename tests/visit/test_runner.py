@@ -142,6 +142,7 @@ async def test_runner_updates_attached_recorder_counters(fake_page, tmp_path) ->
     loaded = SessionManifest.from_json((recorder.session_dir / "manifest.json").read_text(encoding="utf-8"))
     assert result.outcome == "completed"
     assert manifest.outcome == "completed"
-    assert manifest.counters == {"requests_made": 1}
+    assert manifest.framework_counters_version == 1
+    assert manifest.counters == {"framework.requests_made": 1, "requests_made": 1}
     assert manifest.artifacts["trace"] == "trace.zip"
     assert loaded == manifest

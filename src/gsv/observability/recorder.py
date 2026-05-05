@@ -15,6 +15,18 @@ from gsv.observability.manifest import BrowserMeta, ManifestOutcome, RunRef, Ses
 
 LOG = logging.getLogger(__name__)
 
+FRAMEWORK_COUNTER_KEYS = {
+    "cancellation_boundary",
+    "cancellation_checks_visited",
+    "cooldowns",
+    "hydration_retries",
+    "hydration_retry_attempts",
+    "hydration_retry_giveup_count",
+    "hydration_retry_success_count",
+    "pagination_pages",
+    "requests_made",
+}
+
 
 class SessionRecorder:
     """Own a session directory, structured log, manifest, and registered artifacts."""
@@ -144,7 +156,7 @@ class SessionRecorder:
             duration_seconds=duration,
             outcome=outcome,
             error=error,
-            counters=dict(self._counters),
+            counters=_with_framework_counter_namespace(self._counters),
             browser=browser_meta,
             artifacts=dict(self._artifacts),
         )
@@ -176,3 +188,11 @@ def _manifest_outcome(value: str) -> ManifestOutcome:
 def _is_success_cleanup_artifact(path: str) -> bool:
     name = Path(path).name
     return name in {"trace.zip", "network.har", "video.webm"} or (name.startswith("video_") and name.endswith(".webm"))
+
+
+def _with_framework_counter_namespace(counters: dict[str, int]) -> dict[str, int]:
+    normalized = dict(counters)
+    for key, value in counters.items():
+        if key in FRAMEWORK_COUNTER_KEYS:
+            normalized.setdefault(f"framework.{key}", value)
+    return normalized

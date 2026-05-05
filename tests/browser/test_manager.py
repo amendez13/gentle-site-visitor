@@ -11,7 +11,7 @@ import pytest
 
 from gsv.browser.manager import BrowserManager
 from gsv.browser.primitives import STEALTH_LAUNCH_ARGS, WEBDRIVER_INIT_SCRIPT
-from gsv.config import FingerprintConfig, ObservabilityConfig, PacingConfig, SiteConfig, VisitorConfig
+from gsv.config import FingerprintConfig, ObservabilityConfig, PacingConfig, RateLimitConfig, SiteConfig, VisitorConfig
 
 
 class FakeContext:
@@ -178,6 +178,27 @@ def test_build_context_kwargs_allows_embed_har_without_host_filter(tmp_path) -> 
     assert kwargs["record_har_path"] == "/tmp/network.har"
     assert "record_har_url_filter" not in kwargs
     assert "record_har_content" not in kwargs
+
+
+def test_rate_limiter_uses_site_override_when_present(tmp_path) -> None:
+    """A site-specific rate limit beats the visitor pacing default."""
+    visitor = VisitorConfig(pacing=PacingConfig(rate_limit_per_hour=60))
+    site = SiteConfig(name="example", storage_path=str(tmp_path), rate_limit=RateLimitConfig(requests_per_hour=30))
+
+    manager = BrowserManager(visitor, site, rng=random.Random(1))
+
+    assert manager.rate_limiter.max_per_hour == 30
+    assert manager.rate_limiter.window_minutes == 60
+
+
+def test_rate_limiter_falls_back_to_visitor_default(tmp_path) -> None:
+    """Missing site override keeps the visitor-level hourly rate cap."""
+    visitor = VisitorConfig(pacing=PacingConfig(rate_limit_per_hour=60))
+    site = SiteConfig(name="example", storage_path=str(tmp_path))
+
+    manager = BrowserManager(visitor, site, rng=random.Random(1))
+
+    assert manager.rate_limiter.max_per_hour == 60
 
 
 @pytest.mark.asyncio
