@@ -22,7 +22,9 @@ dependencies = [
 gsv = "gsv.cli:cli"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = ["gsv*", "apps*"]
+exclude = ["tests*"]
 
 [tool.black]
 line-length = 127

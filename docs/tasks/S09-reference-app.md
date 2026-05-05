@@ -2,7 +2,7 @@
 
 > **Slice:** S9 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §3](../ARCHITECTURE.md#3-layered-architecture), [ARCHITECTURE.md §10](../ARCHITECTURE.md#10-extending-the-skeleton-app-author-checklist).
-> **Status:** Not started. **Depends on S1–S8.**
+> **Status:** Implemented for issue #21. **Depends on S1–S8.**
 
 ---
 
@@ -341,7 +341,11 @@ This section is *expected* to be filled in during the slice. Anything that surpr
 | Symptom | Where felt | Likely framework gap | Defer to S10? |
 |---|---|---|---|
 | _e.g._ "had to write my own back-navigation helper because `Navigate(url='back')` doesn't exist" | `apps/example/visit.py` step 7 | Add `Back` step or accept `'back'` as `Navigate.url` value | yes |
-| _(fill in during slice)_ | | | |
+| The app owns a concrete `WIKIPEDIA_AUTH_ADAPTER`, but current runtime setup builds adapters from YAML only. | `apps/example/auth.py` and `apps/example/config.yaml` | Consider first-class app-provided auth adapter resolution or remove the adapter-file requirement from future app contracts. | yes |
+| Evidence rows are written as `{event_type, payload}` while older task text expected an `event` field. | `apps/example/README.md` and PR smoke output | Align the app-author docs and smoke-test examples with the S5 evidence sink schema. | yes |
+| The S9 smoke contract expects `actions_total` and `cancellation_boundary`, but the runner naturally emits `requests_made`, `cooldowns`, and hydration counters. | `apps/example/visit.py` | Decide whether these normalized counters belong in the framework runner instead of each app. | yes |
+| Enabling both trace and HAR caused trace finalization to warn after HAR recreated the browser context. | Live smoke with `--observability=always` | Preserve trace state across HAR context rotation or document trace/HAR interaction. | yes |
+| No new gaps found requiring framework code changes in this PR. | S9 implementation | Keep S10 focused on documentation/schema polish for the app contract findings above. | no |
 
 Each row of this table that resolves to "yes, defer" becomes an S10 deliverable.
 
