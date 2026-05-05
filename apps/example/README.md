@@ -17,8 +17,11 @@ Wikipedia is public, stable, and has consistent article infobox structure. Its
 robots file documents that friendly, low-speed bots may view article pages and
 disallows dynamic `/w/`, `/api/`, trap, and special-page paths:
 <https://en.wikipedia.org/robots.txt>. This app stays on article URLs under
-`/wiki/` and caps itself at `rate_limit_per_hour: 30`, with burst cooldowns
-after every 10 actions.
+`/wiki/`. The default app config keeps the conservative framework cap of
+`rate_limit_per_hour: 90`, with short per-action delays and small burst
+cooldowns so bounded headed demos visibly move through pages without stalling
+for minutes. Lower `GSV_EXAMPLE_RATE_LIMIT_PER_HOUR` and raise
+`GSV_EXAMPLE_DELAY_MIN/MAX` for slower unattended runs.
 
 This is an interactive reference app, not a bulk crawler. Keep runs bounded for
 demos with `GSV_EXAMPLE_LIMIT=5`.
@@ -43,11 +46,18 @@ GSV_EXAMPLE_DISTRACTION_CHANCE=0 \
 GSV_EXAMPLE_RATE_LIMIT_PER_HOUR=999 \
 GSV_EXAMPLE_BURST_MIN=0.01 \
 GSV_EXAMPLE_BURST_MAX=0.01 \
+GSV_EXAMPLE_ARTICLE_DWELL_MIN=0 \
+GSV_EXAMPLE_ARTICLE_DWELL_MAX=0 \
 GSV_EXAMPLE_DWELL_MIN=0 \
 GSV_EXAMPLE_DWELL_MAX=0 \
 GSV_EXAMPLE_TRACE=false \
 gsv --config apps/example/config.yaml run example --once --observability=always
 ```
+
+The normal headed demo keeps each asteroid article visible for an 8-10 second
+skim/read cycle: navigate to the article, extract the infobox composition,
+scroll the article, dwell visibly, record evidence, and continue to the next
+stored article URL.
 
 ## Expected output
 
