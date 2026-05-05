@@ -376,7 +376,7 @@ Pure planning module ported from `orchestrator_plan.py`. No I/O. Inputs: profile
 - **Rest-period enforcement**: each subsequent kept slot is pushed forward by a uniform random `rest_min_minutes..rest_max_minutes` from the previous kept slot. If the push exceeds `window_end`, the slot is dropped as skipped.
 - **Determinism**: a seeded RNG can be passed for tests; default is `Random()`.
 
-The skeleton also supports a "single-slot ad-hoc" mode for `gentle-visit run --now`, which bypasses planning entirely.
+The skeleton also supports a single-shot mode through `gsv run <site> --once`, which bypasses planning entirely.
 
 ### 4.7 Observability layer (`gsv.observability`)
 
@@ -385,7 +385,7 @@ The skeleton also supports a "single-slot ad-hoc" mode for `gentle-visit run --n
 **Per-run session directory** (verbatim layout from CareerExplorer):
 
 ```
-<sessions_dir>/<UTC-stamp>_run-<id>/
+<sessions_dir>/<site>/<UTC-stamp>_run-<id>/
   manifest.json        # run metadata, outcome, counters, artifact map
   worker.jsonl         # structured log lines for the run
   trace.zip            # Playwright trace (opt-in via observability.trace)
@@ -478,6 +478,7 @@ visitor:
 
 sites:
   example_site:                    # selected via CLI / env
+    app_module: apps.example        # optional; defaults to apps.<site>
     auth:
       login_url: "https://example.com/login"
       auth_marker_url: "https://example.com/home"
@@ -615,7 +616,11 @@ gentle-site-visitor/
 │       ├── config/
 │       │   ├── model.py            # dataclasses (VisitorConfig, SiteConfig)
 │       │   └── loader.py           # YAML + env interpolation + overrides
+│       ├── apps/
+│       │   └── __init__.py         # registry for apps/<name> plan factories
 │       └── cli/
+│           ├── __init__.py
+│           ├── config.py           # `gsv config validate`
 │           ├── main.py             # `gsv` entrypoint
 │           ├── run.py              # `gsv run <site>`
 │           ├── sessions.py         # `gsv sessions ...`
@@ -705,6 +710,7 @@ gsv run example --once --headed --observability=always
 ```
 
 Runs a single planned slot inline against the dev server, headed browser, full bundle.
+In S6 this is an in-process driver only; lease coordination and worker loops arrive in S7.
 
 ### Production-like home worker
 

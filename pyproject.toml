@@ -1,3 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gentle-site-visitor"
+version = "0.1.0"
+description = "Reusable skeleton for authenticated, paced, observable site visits."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6.0.3",
+    "click>=8.1.7",
+    "python-dotenv>=1.2.2",
+    "playwright>=1.48.0",
+]
+
+[project.scripts]
+gsv = "gsv.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 127
 target-version = ['py310', 'py311', 'py312']

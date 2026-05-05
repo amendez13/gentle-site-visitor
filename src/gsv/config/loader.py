@@ -33,6 +33,15 @@ _VALID_HAR_CONTENT = {"omit", "embed"}
 
 def load_config(config_path: str | Path, site_name: str) -> tuple[VisitorConfig, SiteConfig]:
     """Load visitor defaults and one resolved site configuration."""
+    visitor, sites = load_all_configs(config_path)
+    try:
+        return visitor, sites[site_name]
+    except KeyError as exc:
+        raise ConfigError(f"sites.{site_name} must be a mapping") from exc
+
+
+def load_all_configs(config_path: str | Path) -> tuple[VisitorConfig, dict[str, SiteConfig]]:
+    """Load visitor defaults and every resolved site configuration."""
     path = Path(config_path).expanduser()
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
@@ -45,11 +54,15 @@ def load_config(config_path: str | Path, site_name: str) -> tuple[VisitorConfig,
     resolved = _resolve_env_in_data(raw)
     visitor_raw = _mapping(resolved.get("visitor", {}), "visitor")
     sites_raw = _mapping(resolved.get("sites", {}), "sites")
-    site_raw = _mapping(sites_raw.get(site_name), f"sites.{site_name}")
 
     visitor = _parse_visitor(visitor_raw)
-    site = _parse_site(site_name, visitor, site_raw)
-    return visitor, site
+    sites: dict[str, SiteConfig] = {}
+    for site_name, raw_site in sites_raw.items():
+        if not isinstance(site_name, str):
+            raise ConfigError("sites keys must be strings")
+        site_raw = _mapping(raw_site, f"sites.{site_name}")
+        sites[site_name] = _parse_site(site_name, visitor, site_raw)
+    return visitor, sites
 
 
 def _resolve_env_in_data(value: Any) -> Any:
@@ -103,6 +116,7 @@ def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> 
         raise ConfigError(f"sites.{site_name}.allowed_host_globs must be a list of strings")
     return SiteConfig(
         name=site_name,
+        app_module=_as_str(raw.get("app_module"), ""),
         storage_path=storage_path,
         locale=_as_str(raw.get("locale"), visitor.locale),
         timezone_id=_as_str(raw.get("timezone_id"), visitor.timezone_id),

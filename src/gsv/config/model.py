@@ -118,6 +118,7 @@ class SiteConfig:
     """Resolved per-site browser settings."""
 
     name: str
+    app_module: str = ""
     storage_path: str = "data/browser/{site}"
     locale: str = "en-US"
     timezone_id: str = "UTC"

@@ -90,6 +90,7 @@ visitor:
 
 sites:
   example:
+    app_module: "apps.example"
     storage_path: "data/browser/example"
     locale: en-US
     timezone_id: UTC
