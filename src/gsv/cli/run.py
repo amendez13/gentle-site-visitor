@@ -59,7 +59,7 @@ def run_command(
     except CliAuthError as exc:
         click.echo(f"Auth failed: {exc}", err=True)
         raise click.exceptions.Exit(EXIT_AUTH) from exc
-    except (AppRegistryError, ConfigError, FileNotFoundError, ValueError) as exc:
+    except (AppRegistryError, ConfigError) as exc:
         handle_config_error(exc)
         return
     except Exception as exc:
@@ -135,7 +135,10 @@ def _resolve_run_setup(
     observability: str | None,
     profile: str | None,
 ) -> RunSetup:
-    visitor, site = load_site_config(ctx, site_name)
+    try:
+        visitor, site = load_site_config(ctx, site_name)
+    except (FileNotFoundError, ValueError) as exc:
+        raise ConfigError(str(exc)) from exc
     if headed is not None:
         visitor = replace(visitor, headless=not headed)
     if observability is not None:
@@ -147,7 +150,10 @@ def _resolve_run_setup(
 
     apps.autoload(site)
     plan_factory = apps.get_app(site.name)
-    adapter = SiteAuthAdapter.from_config(site.auth, allowed_host_globs=site.allowed_host_globs)
+    try:
+        adapter = SiteAuthAdapter.from_config(site.auth, allowed_host_globs=site.allowed_host_globs)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     return RunSetup(visitor=visitor, site=site, plan_factory=plan_factory, adapter=adapter)
 
 
