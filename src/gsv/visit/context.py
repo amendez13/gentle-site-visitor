@@ -5,13 +5,16 @@ from __future__ import annotations
 import random
 from collections.abc import Awaitable
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from gsv.config import SiteConfig, VisitorConfig
 from gsv.pacing import Pacing
 from gsv.session import SiteAuthAdapter
 from gsv.visit.plan import StepResult, VisitOutcome
 from gsv.visit.sinks import EvidenceSink, NullEvidenceSink
+
+if TYPE_CHECKING:
+    from gsv.observability import SessionRecorder
 
 
 class Cancellation(Protocol):
@@ -33,9 +36,18 @@ class VisitContext:
     site_adapter: SiteAuthAdapter | None = None
     rng: random.Random = field(default_factory=random.Random)
     sink: EvidenceSink = field(default_factory=NullEvidenceSink)
+    recorder: "SessionRecorder | None" = None
     cancellation: Cancellation | None = None
     extracted: dict[str, Any] = field(default_factory=dict)
     counters: dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Route evidence to the active session bundle when a recorder is present."""
+        if self.recorder is not None and isinstance(self.sink, NullEvidenceSink):
+            from gsv.visit.sinks import JsonlEvidenceSink
+
+            self.sink = JsonlEvidenceSink(self.recorder.session_dir / "evidence.jsonl")
+            self.recorder.register_artifact("evidence", "evidence.jsonl")
 
     def increment(self, name: str, amount: int = 1) -> None:
         """Increment a framework-level counter."""

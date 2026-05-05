@@ -250,9 +250,11 @@ def test_get_browser_metadata_uses_browser_version(tmp_path) -> None:
     """Browser metadata is ready for S5 session manifests."""
     manager = build_manager(tmp_path)
     manager._browser = FakeBrowser(FakeContext())  # type: ignore[assignment]
+    manager._build_context_kwargs()
 
     metadata = manager.get_browser_metadata()
 
     assert metadata["chromium_version"] == "Chromium 123.4.5.6"
     assert "Chrome/123.4.5.6" in metadata["user_agent"]
+    assert metadata["viewport"] == {"width": 100, "height": 200}
     assert metadata["locale"] == "en-GB"
