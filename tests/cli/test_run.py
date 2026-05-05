@@ -12,6 +12,7 @@ from gsv.apps import clear_app_registry, register_app
 from gsv.browser import RateLimiter
 from gsv.cli import cli
 from gsv.cli import run as run_module
+from gsv.visit import VisitContext, VisitPlan
 from tests.cli.conftest import write_config
 from tests.cli.stub_app import build_plan
 
@@ -95,6 +96,12 @@ class FailingAuthSession(FakeSession):
         return False
 
 
+def failing_plan_factory(ctx: VisitContext) -> VisitPlan:
+    """Raise a runtime ValueError from app code."""
+    del ctx
+    raise ValueError("app factory failed")
+
+
 def test_run_once_writes_session_bundle(tmp_path: Path, runner: CliRunner, monkeypatch) -> None:
     """The S6 driver runs a registered plan and finalizes a manifest."""
     clear_app_registry()
@@ -126,3 +133,17 @@ def test_run_auth_failure_exits_10(tmp_path: Path, runner: CliRunner, monkeypatc
 
     assert result.exit_code == 10
     assert "Auth failed" in result.stderr
+
+
+def test_run_app_value_error_exits_runtime_not_config(tmp_path: Path, runner: CliRunner, monkeypatch) -> None:
+    """App/runtime ValueError maps to code 1, not config code 20."""
+    clear_app_registry()
+    register_app("example", failing_plan_factory)
+    config_path = write_config(tmp_path)
+    monkeypatch.setattr(run_module, "BrowserManager", FakeBrowserManager)
+    monkeypatch.setattr(run_module, "Session", FakeSession)
+
+    result = runner.invoke(cli, ["--config", str(config_path), "run", "example", "--once"])
+
+    assert result.exit_code == 1
+    assert "Runtime error: app factory failed" in result.stderr

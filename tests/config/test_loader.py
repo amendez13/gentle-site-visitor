@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from gsv.config import ConfigError, load_config
+from gsv.config import ConfigError, load_all_configs, load_config
 
 
 def test_load_config_merges_visitor_defaults_and_site_overrides(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -170,6 +170,28 @@ def test_load_config_rejects_missing_site(tmp_path) -> None:  # type: ignore[no-
 
     with pytest.raises(ConfigError, match="sites.example"):
         load_config(config_path, "example")
+
+
+def test_load_config_ignores_malformed_unrequested_sites(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Single-site loading does not validate unrelated site blocks."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+sites:
+  example:
+    auth:
+      auth_marker_url: "https://example.test/"
+  unfinished:
+    allowed_host_globs: "*.example.test"
+""",
+        encoding="utf-8",
+    )
+
+    _visitor, site = load_config(config_path, "example")
+
+    assert site.name == "example"
+    with pytest.raises(ConfigError, match="unfinished.allowed_host_globs"):
+        load_all_configs(config_path)
 
 
 def test_load_config_rejects_bad_allowed_hosts(tmp_path) -> None:  # type: ignore[no-untyped-def]
