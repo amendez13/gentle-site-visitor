@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 
+import gsv.observability.retention as retention_module
 from gsv.observability import RunRef, SessionManifest, enforce_session_retention
 
 
@@ -54,3 +56,24 @@ def test_retention_real_mode_deletes_candidates(tmp_path) -> None:  # type: igno
     assert [path.name for path in result.deleted_paths] == ["2026-05-01T100000Z_run-old"]
     assert result.failed_paths == []
     assert not (tmp_path / "2026-05-01T100000Z_run-old").exists()
+
+
+def test_retention_kept_count_reflects_failed_deletions(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Partial deletion failures are counted as kept sessions in real mode."""
+    now = 1_000_000.0
+    create_session(tmp_path, "2026-05-01T100000Z_run-a", mtime=now - 20 * 86400)
+    create_session(tmp_path, "2026-05-02T100000Z_run-b", mtime=now - 20 * 86400)
+    original_rmtree = shutil.rmtree
+
+    def fake_rmtree(path: Path) -> None:
+        if path.name.endswith("run-a"):
+            raise OSError("locked")
+        original_rmtree(path)
+
+    monkeypatch.setattr(retention_module.shutil, "rmtree", fake_rmtree)
+
+    result = enforce_session_retention(tmp_path, retention_days=14, max_sessions=100, now_epoch=now)
+
+    assert [path.name for path in result.deleted_paths] == ["2026-05-02T100000Z_run-b"]
+    assert [path.name for path in result.failed_paths] == ["2026-05-01T100000Z_run-a"]
+    assert result.kept_count == 1

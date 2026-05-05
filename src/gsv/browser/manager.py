@@ -96,18 +96,23 @@ class BrowserManager:
         *,
         har_path: str | None = None,
         video_dir: Path | None = None,
+        viewport: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Build kwargs for browser.new_context()."""
         browser_version = str(getattr(self._browser, "version", "") or "")
-        viewport = build_viewport(
-            self._rng,
-            self.visitor.fingerprint.viewport_width_range,
-            self.visitor.fingerprint.viewport_height_range,
+        selected_viewport = (
+            dict(viewport)
+            if viewport is not None
+            else build_viewport(
+                self._rng,
+                self.visitor.fingerprint.viewport_width_range,
+                self.visitor.fingerprint.viewport_height_range,
+            )
         )
-        self._last_viewport = dict(viewport)
+        self._last_viewport = dict(selected_viewport)
         kwargs: dict[str, Any] = {
             "storage_state": storage_state,
-            "viewport": viewport,
+            "viewport": selected_viewport,
             "locale": self.site.locale,
             "timezone_id": self.site.timezone_id,
             "user_agent": build_user_agent(browser_version),

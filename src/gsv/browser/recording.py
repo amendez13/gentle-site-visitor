@@ -74,6 +74,7 @@ class BrowserRecording:
         video_dir = self._recorder.session_dir / "videos" if obs.video else None
         if video_dir is not None:
             video_dir.mkdir(parents=True, exist_ok=True)
+        current_viewport = dict(self._manager._last_viewport) or None
 
         try:
             storage_state = await self._manager.context.storage_state()
@@ -83,6 +84,7 @@ class BrowserRecording:
                     storage_state,
                     har_path=har_path,
                     video_dir=video_dir,
+                    viewport=current_viewport,
                 )
             )
             await self._manager._apply_context_defaults()
@@ -108,7 +110,10 @@ class BrowserRecording:
             storage_state = await self._manager.context.storage_state()
             await self._manager.context.close()
             self._manager._context = await self._manager._browser.new_context(
-                **self._manager._build_context_kwargs(storage_state)
+                **self._manager._build_context_kwargs(
+                    storage_state,
+                    viewport=dict(self._manager._last_viewport) or None,
+                )
             )
             await self._manager._apply_context_defaults()
             if har_path is not None and self._recorder is not None:

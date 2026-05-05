@@ -141,6 +141,7 @@ async def test_enable_har_for_session_rotates_context_and_preserves_storage(tmp_
     assert browser.context_kwargs[0]["record_har_path"] == str(recorder.session_dir / "network.har")
     assert browser.context_kwargs[0]["record_har_url_filter"] == "**/*.example.test/**"
     assert browser.context_kwargs[0]["record_video_dir"] == str(recorder.session_dir / "videos")
+    assert browser.context_kwargs[0]["viewport"] == browser.context_kwargs[1]["viewport"]
     assert "record_har_path" not in browser.context_kwargs[1]
     assert har_path == str(recorder.session_dir / "network.har")
     assert recorder.finalize(outcome="failed").artifacts["har"] == "network.har"

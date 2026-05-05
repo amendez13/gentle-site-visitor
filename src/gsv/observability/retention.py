@@ -99,7 +99,10 @@ def enforce_session_retention(
             except OSError:
                 failed_paths.append(candidate.path)
 
-    kept_count = max(0, len(records) - len(candidates))
+    if dry_run:
+        kept_count = max(0, len(records) - len(candidates))
+    else:
+        kept_count = max(0, len(records) - len(deleted_paths))
     return RetentionResult(
         sessions_seen=len(records),
         kept_count=kept_count,
