@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
 
 import click
 
@@ -62,7 +61,7 @@ async def _run_worker(ctx: click.Context, *, site_name: str, once: bool, poll_in
                 slot_run_factory=lambda slot: _create_scheduled_run(lease_client, site_name=site_name, slot=slot),
             )
             if once:
-                return int(await runner.run_today(target_date=datetime.now(timezone.utc).date()))
+                return int(await runner.run_once())
             return int(await runner.run_forever())
         if once:
             return int(await controller.run_once())

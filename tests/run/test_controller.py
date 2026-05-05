@@ -234,6 +234,19 @@ async def test_controller_run_once_claims_specific_run_id() -> None:
     assert lease.released
 
 
+async def test_controller_run_once_missing_specific_run_id_exits_runtime() -> None:
+    """A specific run id that cannot be claimed is a visible scheduled-run failure."""
+    lease = FakeLeaseClient(None)
+    controller = _controller(lease, FakeControlClient([]))
+
+    code = await controller.run_once(run_id="run-missing")
+
+    assert code == EXIT_RUNTIME_ERROR
+    assert lease.claimed_ids == ["run-missing"]
+    assert lease.submissions == []
+    assert lease.released
+
+
 async def test_controller_register_failure_exits_runtime_without_release() -> None:
     """Registration failures are restartable runtime failures."""
     lease = FakeLeaseClient(None)

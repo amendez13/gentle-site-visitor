@@ -384,7 +384,7 @@ Pure planning module ported from `orchestrator_plan.py`. No I/O. Inputs: profile
 - **Determinism**: a seeded RNG can be passed for tests; default is `Random()`.
 
 The skeleton also supports a single-shot mode through `gsv run <site> --once`, which bypasses planning entirely.
-`gsv worker --schedule` uses YAML profiles as the v0 source of truth, creates a pending run for each due slot, then claims that exact run id before execution. This keeps the reference server scheduling-agnostic and preserves the one-run-at-a-time worker model.
+`gsv worker --schedule` uses YAML profiles as the v0 source of truth, creates a pending run for each due slot, then claims that exact run id before execution. With `--once`, scheduled mode executes only the next non-skipped slot for the scheduler's local day. This keeps the reference server scheduling-agnostic and preserves the one-run-at-a-time worker model.
 
 ### 4.7 Observability layer (`gsv.observability`)
 

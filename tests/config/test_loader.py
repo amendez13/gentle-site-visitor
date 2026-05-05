@@ -284,6 +284,15 @@ def test_load_config_rejects_non_mapping_document(tmp_path) -> None:  # type: ig
         ),
         ("visitor:\n  headless: flase\nsites:\n  example: {}\n", "visitor.headless"),
         ("visitor:\n  schedule:\n    activity_window_start: '8am'\nsites:\n  example: {}\n", "activity_window_start"),
+        (
+            "visitor:\n"
+            "  schedule:\n"
+            "    activity_window_start: '22:00'\n"
+            "    activity_window_end: '08:00'\n"
+            "sites:\n"
+            "  example: {}\n",
+            "activity window",
+        ),
         ("visitor:\n  schedule:\n    rest_min_minutes: 90\n    rest_max_minutes: 30\nsites:\n  example: {}\n", "rest_min"),
         ("visitor:\n  schedule:\n    profiles: bad\nsites:\n  example: {}\n", "visitor.schedule.profiles"),
         ("visitor:\n  schedule:\n    profiles:\n      - name: missing id\nsites:\n  example: {}\n", "profiles\\[0\\].id"),

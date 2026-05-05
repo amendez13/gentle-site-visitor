@@ -69,6 +69,9 @@ class RunController:
             )
             self._raise_if_heartbeat_failed(heartbeat_handle)
             if run is None:
+                if run_id is not None:
+                    LOG.error("Requested run %s could not be claimed", run_id)
+                    return int(EXIT_RUNTIME_ERROR)
                 return int(EXIT_OK)
             return await self._execute_with_heartbeat_guard(run, heartbeat_handle)
         except SessionAuthError as exc:

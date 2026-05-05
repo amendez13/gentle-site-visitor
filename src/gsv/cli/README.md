@@ -24,7 +24,8 @@ gsv worker --site example --schedule
 polls cooperative cancellation through the visit runner, and submits terminal
 outcomes. `gsv worker --schedule` computes the YAML-backed daily plan, waits
 until each non-skipped slot, creates a pending run for that profile, and claims
-that exact run id before execution.
+that exact run id before execution. With `--once`, scheduled mode executes only
+the next non-skipped slot for the scheduler's local day and exits.
 
 `gsv plan show` prints the computed daily schedule. Use `--seed` for
 reproducible jitter and `--json` for automation.

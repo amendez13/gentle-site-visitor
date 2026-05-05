@@ -230,10 +230,12 @@ def _parse_schedule(raw: Any) -> ScheduleConfig:
     start = _as_str(data.get("activity_window_start"), defaults.activity_window_start)
     end = _as_str(data.get("activity_window_end"), defaults.activity_window_end)
     try:
-        _parse_hhmm(start, field_name="visitor.schedule.activity_window_start")
-        _parse_hhmm(end, field_name="visitor.schedule.activity_window_end")
+        start_time = _parse_hhmm(start, field_name="visitor.schedule.activity_window_start")
+        end_time = _parse_hhmm(end, field_name="visitor.schedule.activity_window_end")
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
+    if start_time > end_time:
+        raise ConfigError("visitor.schedule activity window must not cross midnight")
     rest_min = int(data.get("rest_min_minutes", defaults.rest_min_minutes))
     rest_max = int(data.get("rest_max_minutes", defaults.rest_max_minutes))
     if rest_min < 0 or rest_max < 0:

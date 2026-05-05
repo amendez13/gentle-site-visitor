@@ -11,7 +11,7 @@ from random import Random
 from typing import Protocol
 
 from gsv.config import VisitorConfig
-from gsv.run.exit_codes import EXIT_OK
+from gsv.run.exit_codes import EXIT_OK, EXIT_RUNTIME_ERROR
 from gsv.schedule.plan import PlannedSlot, compute_daily_plan
 
 LOG = logging.getLogger(__name__)
@@ -71,6 +71,30 @@ class SchedulingRunner:
                 continue
             if code != EXIT_OK:
                 LOG.warning("Scheduled slot %s exited with code %s", slot.profile_id, code)
+        return int(EXIT_OK)
+
+    async def run_once(self, *, target_date: date | None = None, rng: Random | None = None) -> int:
+        """Execute the next non-skipped slot for one day, then exit."""
+        plan_date = target_date or self.clock.now().date()
+        plan = compute_daily_plan(self.config.schedule.profiles, self.config.schedule, plan_date, rng=rng)
+        for slot in plan:
+            if slot.skipped:
+                LOG.info("Skipping schedule slot %s: %s", slot.profile_id, slot.skip_reason)
+                continue
+            scheduled_at = datetime.combine(plan_date, slot.scheduled_time)
+            if scheduled_at < self.clock.now():
+                continue
+            await self._sleep_until(plan_date, slot.scheduled_time)
+            try:
+                run_id = await self._create_slot_run(slot)
+                code = await self.run_controller_factory().run_once(run_id=run_id)
+            except Exception:
+                LOG.exception("Scheduled slot %s failed before terminal submission", slot.profile_id)
+                return int(EXIT_RUNTIME_ERROR)
+            if code != EXIT_OK:
+                LOG.warning("Scheduled slot %s exited with code %s", slot.profile_id, code)
+                return int(code)
+            return int(EXIT_OK)
         return int(EXIT_OK)
 
     async def run_forever(self, *, rng_factory: Callable[[], Random] | None = None) -> int:

@@ -152,8 +152,7 @@ async def test_run_worker_schedule_mode_creates_scheduled_run(monkeypatch) -> No
         def __init__(self, **kwargs: Any) -> None:
             self.kwargs = kwargs
 
-        async def run_today(self, *, target_date: Any) -> int:
-            del target_date
+        async def run_once(self) -> int:
             slot = visitor.schedule.profiles[0]
             run_id = await self.kwargs["slot_run_factory"](
                 type(

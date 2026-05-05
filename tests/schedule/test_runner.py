@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any
 
 from gsv.config import ScheduleConfig, VisitorConfig
@@ -143,6 +143,97 @@ async def test_scheduling_runner_continues_after_slot_exception() -> None:
 
     assert code == 0
     assert calls == ["run-2"]
+
+
+async def test_scheduling_runner_run_once_executes_only_next_future_slot() -> None:
+    """One-shot scheduled mode executes at most one upcoming slot."""
+    visitor = replace(
+        VisitorConfig(),
+        schedule=ScheduleConfig(
+            rest_min_minutes=30,
+            rest_max_minutes=30,
+            profiles=[
+                ScheduleProfile(id=1, name="One", preferred_time="09:00", jitter_minutes=0),
+                ScheduleProfile(id=2, name="Two", preferred_time="10:00", jitter_minutes=0),
+                ScheduleProfile(id=3, name="Three", preferred_time="11:00", jitter_minutes=0),
+            ],
+        ),
+    )
+    sleeps: list[float] = []
+    calls: list[str | None] = []
+
+    async def sleeper(delay: float) -> None:
+        sleeps.append(delay)
+
+    async def create_run(slot: Any) -> str:
+        return f"run-{slot.profile_id}"
+
+    runner = SchedulingRunner(
+        config=visitor,
+        clock=FakeClock(datetime(2026, 5, 4, 9, 5)),
+        sleeper=sleeper,
+        slot_run_factory=create_run,
+        run_controller_factory=lambda: FakeController(calls),
+    )
+
+    code = await runner.run_once(target_date=date(2026, 5, 4))
+
+    assert code == 0
+    assert sleeps == [55 * 60]
+    assert calls == ["run-2"]
+
+
+async def test_scheduling_runner_run_once_uses_clock_date_by_default() -> None:
+    """One-shot scheduled mode uses the scheduler's local clock date."""
+    seen_dates: list[date] = []
+    visitor = replace(
+        VisitorConfig(),
+        schedule=ScheduleConfig(
+            profiles=[ScheduleProfile(id=1, name="One", preferred_time="23:30", jitter_minutes=0)],
+        ),
+    )
+
+    async def sleeper(delay: float) -> None:
+        del delay
+
+    runner = SchedulingRunner(
+        config=visitor,
+        clock=FakeClock(datetime(2026, 5, 4, 23, 0)),
+        sleeper=sleeper,
+        run_controller_factory=lambda: FakeController([]),
+    )
+
+    original_sleep_until = runner._sleep_until
+
+    async def record_date(target_date: date, scheduled_time: time) -> None:
+        seen_dates.append(target_date)
+        await original_sleep_until(target_date, scheduled_time)
+
+    object.__setattr__(runner, "_sleep_until", record_date)
+
+    assert await runner.run_once() == 0
+    assert seen_dates == [date(2026, 5, 4)]
+
+
+async def test_scheduling_runner_run_once_surfaces_slot_failure() -> None:
+    """One-shot scheduled mode returns the first non-zero slot exit code."""
+    visitor = replace(
+        VisitorConfig(),
+        schedule=ScheduleConfig(
+            profiles=[ScheduleProfile(id=1, name="One", preferred_time="09:00", jitter_minutes=0)],
+        ),
+    )
+    calls: list[str | None] = []
+
+    runner = SchedulingRunner(
+        config=visitor,
+        clock=FakeClock(datetime(2026, 5, 4, 8, 0)),
+        sleeper=lambda delay: asyncio.sleep(0),
+        run_controller_factory=lambda: FakeController(calls, code=1),
+    )
+
+    assert await runner.run_once(target_date=date(2026, 5, 4)) == 1
+    assert calls == [None]
 
 
 async def test_scheduling_runner_skips_overflow_slots() -> None:
