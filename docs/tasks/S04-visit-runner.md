@@ -2,7 +2,7 @@
 
 > **Slice:** S4 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.4](../ARCHITECTURE.md#44-visit-layer-gsvvisit).
-> **Status:** Not started. **Depends on S1, S3.**
+> **Status:** Implemented. **Depends on S1, S3.**
 
 ---
 
