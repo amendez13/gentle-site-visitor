@@ -22,6 +22,17 @@ def test_manifest_round_trip_preserves_open_counters() -> None:
     assert SessionManifest.from_json(manifest.to_json()) == manifest
 
 
+def test_manifest_includes_framework_counter_schema_version() -> None:
+    """New manifests carry the framework-counter schema version."""
+    manifest = SessionManifest(
+        session_id="2026-05-05T101500Z_run-run_1",
+        run=RunRef(id="run_1", plan_name="smoke"),
+        started_at="2026-05-05T10:15:00Z",
+    )
+
+    assert manifest.to_dict()["framework_counters_version"] == 1
+
+
 def test_manifest_tolerates_missing_optional_fields() -> None:
     """Older or partial manifests can still be loaded."""
     manifest = SessionManifest.from_json(
@@ -31,3 +42,4 @@ def test_manifest_tolerates_missing_optional_fields() -> None:
     assert manifest.outcome == "in_progress"
     assert manifest.ended_at is None
     assert manifest.counters == {}
+    assert manifest.framework_counters_version == 1

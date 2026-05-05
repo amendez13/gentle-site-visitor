@@ -16,6 +16,7 @@ from gsv.config.model import (
     IntRange,
     ObservabilityConfig,
     PacingConfig,
+    RateLimitConfig,
     ScheduleConfig,
     SiteAuthConfig,
     SiteConfig,
@@ -136,6 +137,11 @@ def _parse_site(site_name: str, visitor: VisitorConfig, raw: dict[str, Any]) -> 
         timezone_id=_as_str(raw.get("timezone_id"), visitor.timezone_id),
         page_timeout_seconds=max(1, int(raw.get("page_timeout_seconds", visitor.page_timeout_seconds))),
         allowed_host_globs=list(allowed_host_globs),
+        rate_limit=_parse_rate_limit(
+            raw.get("rate_limit"),
+            f"sites.{site_name}.rate_limit",
+            default_requests_per_hour=visitor.pacing.rate_limit_per_hour,
+        ),
         auth=_parse_site_auth(raw.get("auth"), f"sites.{site_name}.auth"),
     )
 
@@ -181,6 +187,19 @@ def _parse_site_auth(raw: Any, name: str) -> SiteAuthConfig:
         warmup_url=_as_optional_str(data.get("warmup_url")),
         extra_init_scripts=_parse_str_list(data.get("extra_init_scripts"), f"{name}.extra_init_scripts"),
     )
+
+
+def _parse_rate_limit(raw: Any, name: str, *, default_requests_per_hour: int) -> RateLimitConfig | None:
+    if raw is None:
+        return None
+    data = _mapping(raw, name)
+    requests_per_hour = int(data.get("requests_per_hour", data.get("rate_limit_per_hour", default_requests_per_hour)))
+    window_minutes = int(data.get("window_minutes", 60))
+    if requests_per_hour < 1:
+        raise ConfigError(f"{name}.requests_per_hour must be at least 1")
+    if window_minutes < 1:
+        raise ConfigError(f"{name}.window_minutes must be at least 1")
+    return RateLimitConfig(requests_per_hour=requests_per_hour, window_minutes=window_minutes)
 
 
 def _parse_fingerprint(raw: Any) -> FingerprintConfig:

@@ -41,6 +41,30 @@ def test_rate_limiter_prunes_old_timestamps() -> None:
     assert limiter._timestamps == [10.0]
 
 
+@pytest.mark.asyncio
+async def test_rate_limiter_scales_shorter_window_without_losing_hourly_cap() -> None:
+    """Shorter smoothing windows do not turn the hourly cap into a per-window cap."""
+    now = 0.0
+    sleeps: list[float] = []
+
+    def clock() -> float:
+        return now
+
+    async def sleeper(delay: float) -> None:
+        nonlocal now
+        sleeps.append(delay)
+        now += delay
+
+    limiter = RateLimiter(max_per_hour=2, window_minutes=15, clock=clock, sleeper=sleeper)
+
+    await limiter.acquire()
+    await limiter.acquire()
+    await limiter.acquire()
+
+    assert sleeps == [901.0, 2700.0]
+    assert now == 3601.0
+
+
 def test_rate_limiter_rejects_non_positive_limit() -> None:
     """The limiter must have at least one available slot per hour."""
     with pytest.raises(ValueError, match="max_per_hour"):

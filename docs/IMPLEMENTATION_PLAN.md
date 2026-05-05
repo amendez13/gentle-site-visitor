@@ -1,6 +1,6 @@
 # Gentle Site Visitor — Implementation Plan
 
-> **Status:** v0 plan. No implementation yet — this document and the per-slice task files in [docs/tasks/](tasks/) describe *how* the architecture in [ARCHITECTURE.md](ARCHITECTURE.md) gets built.
+> **Status:** v0 implemented baseline — this document records how the architecture in [ARCHITECTURE.md](ARCHITECTURE.md) was delivered and where follow-up hardening work remains.
 > **Audience:** maintainers and AI coding agents that will execute the slices below.
 > **Companion docs:**
 >
@@ -185,7 +185,7 @@ Build `apps/example/` against a public, low-stakes target (TBD; default placehol
 
 ### 5.10 S10 — Hardening
 
-Add the optional, opt-in features that were already proven in CareerExplorer but are not on the critical path: per-site rate-limit overrides, pagination/platform caps, hydration-retry counters surfaced into the manifest, and a generalized "integrity audit" probe analogous to LinkedIn's panel-probe (recon-mode, capped, off by default). → [S10-hardening.md](tasks/S10-hardening.md)
+Add the foundational hardening needed for v0: per-site rate-limit overrides, framework-counter schema/versioning in manifests, and final documentation cleanup. Larger optional features from the original S10 scope are tracked as follow-up issues: pagination/platform caps, integrity probes, and per-step pacing controls. → [S10-hardening.md](tasks/S10-hardening.md)
 
 ---
 
@@ -199,6 +199,14 @@ These are explicitly *not* delivered by S1–S10 and require their own future pl
 - Distributed worker coordination beyond a single residential host
 - A web UI for run/session inspection (CLI only in v0)
 - CAPTCHA solving (manual escalation only)
+
+## 6.1 Follow-up hardening candidates
+
+The v0 baseline is complete after S10, but these opt-in features remain tracked for future releases:
+
+- [#42](https://github.com/amendez13/gentle-site-visitor/issues/42) — pagination and platform caps for `ForEach`
+- [#43](https://github.com/amendez13/gentle-site-visitor/issues/43) — integrity probes and per-step pacing controls
+- [#41](https://github.com/amendez13/gentle-site-visitor/issues/41) — S9 app contract polish around app auth adapters, evidence docs, and trace/HAR interaction
 
 ---
 
@@ -224,7 +232,7 @@ Tracked in [ARCHITECTURE.md §14](ARCHITECTURE.md#14-open-questions). When a sli
 | 2. Multi-session per worker | Out of scope (v0) |
 | 3. Proxy support | Out of scope (v0) |
 | 4. Schedule source of truth (YAML vs DB) | S8 (YAML for v0) |
-| 5. Manifest schema evolution | S5 |
+| 5. Manifest schema evolution | S10 (`framework_counters_version: 1`) |
 | 6. Test strategy for non-deterministic primitives | S1 resolved for browser primitives (seeded RNG seam); S8 keeps planner parity |
 | 7. Per-app KV store | Out of scope (v0); revisit after S9 |
 

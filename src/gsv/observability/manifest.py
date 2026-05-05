@@ -1,4 +1,9 @@
-"""Session manifest schema for per-run observability bundles."""
+"""Session manifest schema for per-run observability bundles.
+
+Framework counters are copied into ``counters`` with ``framework.`` prefixes and
+versioned by ``framework_counters_version``. Existing flat counter keys remain
+loadable for older manifests and for app-defined counters.
+"""
 
 from __future__ import annotations
 
@@ -60,6 +65,7 @@ class SessionManifest:
     session_id: str
     run: RunRef
     started_at: str
+    framework_counters_version: int = 1
     ended_at: str | None = None
     duration_seconds: float | None = None
     outcome: ManifestOutcome = "in_progress"
@@ -88,6 +94,7 @@ class SessionManifest:
             session_id=str(data.get("session_id", "")),
             run=RunRef.from_mapping(data.get("run")),
             started_at=str(data.get("started_at", "")),
+            framework_counters_version=_optional_int(data.get("framework_counters_version"), 1),
             ended_at=_optional_str(data.get("ended_at")),
             duration_seconds=_optional_float(data.get("duration_seconds")),
             outcome=_manifest_outcome(data.get("outcome")),
@@ -109,6 +116,13 @@ def _optional_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _optional_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _int_dict(value: Any) -> dict[str, int]:

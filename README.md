@@ -96,6 +96,9 @@ visitor:
 sites:
   example:
     app_module: apps.example            # optional; defaults to apps.<site>
+    rate_limit:                         # optional; omitted cap inherits visitor.pacing.rate_limit_per_hour
+      requests_per_hour: 30
+      window_minutes: 60
     auth:
       login_url: "https://example.com/login"
       auth_marker_url: "https://example.com/home"

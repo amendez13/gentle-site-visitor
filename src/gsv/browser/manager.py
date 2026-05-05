@@ -14,7 +14,7 @@ from gsv.browser.fingerprint import build_user_agent, build_viewport
 from gsv.browser.primitives import STEALTH_LAUNCH_ARGS, WEBDRIVER_INIT_SCRIPT
 from gsv.browser.rate_limit import RateLimiter
 from gsv.browser.recording import BrowserRecording
-from gsv.config.model import SiteConfig, VisitorConfig
+from gsv.config.model import RateLimitConfig, SiteConfig, VisitorConfig
 from gsv.observability import SessionRecorder
 
 LOG = logging.getLogger(__name__)
@@ -38,12 +38,18 @@ class BrowserManager:
         self._context: BrowserContext | None = None
         self._last_viewport: dict[str, int] = {}
         self._recording: BrowserRecording = BrowserRecording(self)
-        self.rate_limiter = RateLimiter(max_per_hour=visitor_config.pacing.rate_limit_per_hour)
+        self.rate_limiter = RateLimiter(config=self._effective_rate_limit())
 
     @property
     def context(self) -> BrowserContext | None:
         """Return the active browser context, if started."""
         return self._context
+
+    def _effective_rate_limit(self) -> RateLimitConfig:
+        """Return the per-site override or visitor-level default rate limit."""
+        if self.site.rate_limit is not None:
+            return self.site.rate_limit
+        return RateLimitConfig(requests_per_hour=self.visitor.pacing.rate_limit_per_hour)
 
     def get_browser_metadata(self) -> dict[str, Any]:
         """Return browser config snapshot for later session manifests."""

@@ -53,6 +53,14 @@ class PacingConfig:
 
 
 @dataclass(frozen=True)
+class RateLimitConfig:
+    """Sliding-window rate-limit settings for a visitor or site."""
+
+    requests_per_hour: int = 90
+    window_minutes: int = 60
+
+
+@dataclass(frozen=True)
 class FingerprintConfig:
     """Browser fingerprint ranges that should vary by session."""
 
@@ -138,6 +146,7 @@ class SiteConfig:
     timezone_id: str = "UTC"
     page_timeout_seconds: int = 30
     allowed_host_globs: list[str] = field(default_factory=list)
+    rate_limit: RateLimitConfig | None = None
     auth: SiteAuthConfig = field(default_factory=SiteAuthConfig)
 
     @property
