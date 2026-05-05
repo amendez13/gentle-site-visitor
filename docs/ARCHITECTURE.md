@@ -575,6 +575,7 @@ gentle-site-visitor/
 │       ├── __init__.py
 │       ├── browser/
 │       │   ├── manager.py          # BrowserManager + context kwargs
+│       │   ├── recording.py        # trace/HAR/video lifecycle + context rotation
 │       │   ├── fingerprint.py      # UA, viewport, init scripts
 │       │   ├── primitives.py       # delay/mouse/click/type/scroll/dwell helpers
 │       │   └── rate_limit.py       # RateLimiter
@@ -606,9 +607,11 @@ gentle-site-visitor/
 │       ├── schedule/
 │       │   └── plan.py             # port of orchestrator_plan.py
 │       ├── observability/
+│       │   ├── manifest.py         # SessionManifest, RunRef, BrowserMeta
 │       │   ├── recorder.py         # session dir, manifest, finalize
-│       │   ├── store.py            # list/inspect/purge over data/sessions
-│       │   └── retention.py
+│       │   ├── store.py            # list/inspect over data/sessions
+│       │   ├── retention.py        # age/count cleanup plan + execution
+│       │   └── cleanup.py          # success cleanup for heavyweight artifacts
 │       ├── config/
 │       │   ├── model.py            # dataclasses (VisitorConfig, SiteConfig)
 │       │   └── loader.py           # YAML + env interpolation + overrides
@@ -771,6 +774,6 @@ To resolve before/while implementing slices:
 2. **Multiple sessions per worker.** The skeleton assumes one site session at a time. Multi-site workers require a session pool — out of scope for v0.
 3. **Proxy support.** Currently expected to be the operator's network responsibility. Should the skeleton expose a proxy field for explicit dual-IP testing?
 4. **Schedule sources of truth.** YAML profiles vs database-backed profiles. CareerExplorer uses DB-backed; the skeleton ships YAML for simplicity.
-5. **Manifest evolution.** When a counter is added, do we version the schema or treat it as open-ended? Recommend: open-ended `counters: dict[str, int]` plus a stable top-level shape.
+5. **Manifest evolution.** Resolved in S5: manifests use a stable top-level shape with open-ended `counters: dict[str, int]`; no schema-version field is added for counter-only evolution.
 6. **Test strategy for non-deterministic primitives.** Resolved in S1 for the browser layer: delay, dwell, mouse, click, typing, scroll, and viewport helpers accept an injected seeded RNG. S8 applies the same pattern to scheduling.
 7. **Per-app state.** Should the skeleton expose a small KV store under the session dir for app-defined cross-run state, or leave it to apps?

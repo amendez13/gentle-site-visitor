@@ -2,7 +2,7 @@
 
 > **Slice:** S5 of 10. See [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 > **Architecture refs:** [ARCHITECTURE.md §4.7](../ARCHITECTURE.md#47-observability-layer-gsvobservability), [§5.2 manifest schema](../ARCHITECTURE.md#52-session-manifest), [§5.3 evidence stream](../ARCHITECTURE.md#53-evidence-stream).
-> **Status:** Not started. **Depends on S1.**
+> **Status:** Implemented. **Depends on S1.**
 
 ---
 
@@ -247,14 +247,14 @@ def cleanup_session_artifacts_on_success(session_dir: Path | None, mode: str) ->
 
 ## 5. Acceptance criteria
 
-- [ ] `pytest tests/observability tests/browser/test_recording.py` is green; coverage ≥ 90%.
-- [ ] `SessionRecorder.open(mode="off", ...)` returns `None`; no directory is created.
-- [ ] `mode=failures` + outcome=`completed` strips `trace.zip`, `video.webm`, `video_*.webm`, and `network.har`; `manifest.json` and `worker.jsonl` remain.
-- [ ] `mode=failures` + outcome=`failed` retains all artifacts.
-- [ ] `mode=always` retains everything regardless of outcome.
-- [ ] `enforce_session_retention(retention_days=14, max_sessions=100)` matches CE behavior on a synthetic directory with mixed mtimes.
-- [ ] Manifest round-trip is stable (`SessionManifest.from_json(m.to_json())` equals `m`).
-- [ ] No `linkedin`, `feed`, `task_id`, `jobs_scraped`, or `panel_probe` strings in `src/gsv/observability/`.
+- [x] `pytest tests/observability tests/browser/test_recording.py` is green; coverage ≥ 90%.
+- [x] `SessionRecorder.open(mode="off", ...)` returns `None`; no directory is created.
+- [x] `mode=failures` + outcome=`completed` strips `trace.zip`, `video.webm`, `video_*.webm`, and `network.har`; `manifest.json` and `worker.jsonl` remain.
+- [x] `mode=failures` + outcome=`failed` retains all artifacts.
+- [x] `mode=always` retains everything regardless of outcome.
+- [x] `enforce_session_retention(retention_days=14, max_sessions=100)` matches CE behavior on a synthetic directory with mixed mtimes.
+- [x] Manifest round-trip is stable (`SessionManifest.from_json(m.to_json())` equals `m`).
+- [x] No `linkedin`, `feed`, `task_id`, `jobs_scraped`, or `panel_probe` strings in `src/gsv/observability/`.
 
 ---
 

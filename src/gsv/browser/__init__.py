@@ -17,8 +17,10 @@ from gsv.browser.primitives import (
     scroll_page,
 )
 from gsv.browser.rate_limit import RateLimiter
+from gsv.browser.recording import BrowserRecording
 
 __all__ = [
+    "BrowserRecording",
     "BrowserManager",
     "RateLimiter",
     "STEALTH_LAUNCH_ARGS",

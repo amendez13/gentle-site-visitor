@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from gsv.observability import BrowserMeta, RunRef, SessionManifest, SessionRecorder
 from gsv.visit import StepResult, VisitContext, VisitPlan, VisitRunner
 from tests.visit.conftest import FakePacing
 
@@ -116,3 +117,27 @@ async def test_runner_reports_cancellation_from_boundary(fake_page) -> None:  # 
     assert result.outcome == "cancelled"
     assert result.error == "stop"
     assert result.step_results == []
+
+
+@pytest.mark.asyncio
+async def test_runner_finalizes_attached_recorder(fake_page, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Top-level VisitRunner writes framework counters into the session manifest."""
+    recorder = SessionRecorder.open(
+        sessions_dir=tmp_path,
+        mode="always",
+        run=RunRef(id="r1", plan_name="plan"),
+        browser_meta_provider=BrowserMeta,
+    )
+    assert recorder is not None
+    ctx = VisitContext(
+        page=fake_page,
+        pacing=FakePacing(),  # type: ignore[arg-type]
+        recorder=recorder,
+    )
+
+    result = await VisitRunner(ctx).run(VisitPlan([RecordingStep([])]))
+
+    manifest = SessionManifest.from_json((recorder.session_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert result.outcome == "completed"
+    assert manifest.outcome == "completed"
+    assert manifest.counters == {"requests_made": 1}

@@ -44,6 +44,8 @@ visitor:
     har: true
     video: true
     sessions_dir: "~/gsv-sessions"
+    retention_days: 7
+    max_sessions: 25
     har_content: embed
   worker:
     api_url: http://127.0.0.1:8085
@@ -86,6 +88,8 @@ sites:
     assert visitor.observability.mode == "always"
     assert visitor.observability.trace is False
     assert visitor.observability.video is True
+    assert visitor.observability.retention_days == 7
+    assert visitor.observability.max_sessions == 25
     assert visitor.observability.har_content == "embed"
     assert visitor.worker.api_key == "secret"
     assert site.name == "example"

@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from gsv.observability import BrowserMeta, RunRef, SessionRecorder
 from gsv.visit import StepResult, VisitContext, VisitPlan, VisitRunner
 from gsv.visit.steps import Branch, ForEach, RecordEvent
 
@@ -126,3 +127,26 @@ async def test_record_event_writes_to_sink(visit_ctx) -> None:  # type: ignore[n
 
     assert result.outcome == "ok"
     assert events == [("counted", {"count": 2})]
+
+
+@pytest.mark.asyncio
+async def test_record_event_uses_recorder_evidence_sink_by_default(  # type: ignore[no-untyped-def]
+    visit_ctx, tmp_path
+) -> None:
+    """Attaching a recorder routes RecordEvent output to evidence.jsonl."""
+    recorder = SessionRecorder.open(
+        sessions_dir=tmp_path,
+        mode="always",
+        run=RunRef(id="r1", plan_name="plan"),
+        browser_meta_provider=BrowserMeta,
+    )
+    assert recorder is not None
+    visit_ctx.recorder = recorder
+    visit_ctx.__post_init__()
+
+    await RecordEvent("seen", lambda _ctx: {"count": 2}).execute(visit_ctx)
+
+    assert (recorder.session_dir / "evidence.jsonl").read_text(encoding="utf-8").strip() == (
+        '{"event_type":"seen","payload":{"count":2}}'
+    )
+    assert recorder.finalize(outcome="failed").artifacts["evidence"] == "evidence.jsonl"

@@ -67,6 +67,8 @@ class ObservabilityConfig:
     har: bool = True
     video: bool = False
     sessions_dir: str = "data/sessions"
+    retention_days: int = 14
+    max_sessions: int = 100
     har_content: str = "omit"
 
 

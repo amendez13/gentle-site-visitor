@@ -179,6 +179,8 @@ def _parse_observability(raw: Any) -> ObservabilityConfig:
         har=_as_bool(_with_default(data.get("har"), defaults.har), "visitor.observability.har"),
         video=_as_bool(_with_default(data.get("video"), defaults.video), "visitor.observability.video"),
         sessions_dir=_expand_path(_as_str(data.get("sessions_dir"), defaults.sessions_dir)),
+        retention_days=max(1, int(data.get("retention_days", defaults.retention_days))),
+        max_sessions=max(0, int(data.get("max_sessions", defaults.max_sessions))),
         har_content=har_content,
     )
 

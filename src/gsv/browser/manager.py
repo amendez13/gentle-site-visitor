@@ -6,14 +6,16 @@ import json
 import logging
 import random
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
 from gsv.browser.fingerprint import build_user_agent, build_viewport
 from gsv.browser.primitives import STEALTH_LAUNCH_ARGS, WEBDRIVER_INIT_SCRIPT
 from gsv.browser.rate_limit import RateLimiter
+from gsv.browser.recording import BrowserRecording
 from gsv.config.model import SiteConfig, VisitorConfig
+from gsv.observability import SessionRecorder
 
 LOG = logging.getLogger(__name__)
 
@@ -34,6 +36,8 @@ class BrowserManager:
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
+        self._last_viewport: dict[str, int] = {}
+        self._recording: BrowserRecording = BrowserRecording(self)
         self.rate_limiter = RateLimiter(max_per_hour=visitor_config.pacing.rate_limit_per_hour)
 
     @property
@@ -48,9 +52,43 @@ class BrowserManager:
             "chromium_version": browser_version,
             "user_agent": build_user_agent(browser_version),
             "headless": self.visitor.headless,
+            "viewport": dict(self._last_viewport),
             "locale": self.site.locale,
             "timezone_id": self.site.timezone_id,
         }
+
+    def attach_recorder(self, recorder: SessionRecorder | None) -> None:
+        """Attach an observability recorder for trace/HAR/video artifacts."""
+        self._recording.attach_recorder(recorder)
+
+    async def start_tracing(self) -> None:
+        """Begin Playwright tracing for the active recorder, if configured."""
+        await self._recording.start_tracing()
+
+    async def stop_tracing(self) -> str | None:
+        """Stop Playwright tracing and return the trace path."""
+        return cast(str | None, await self._recording.stop_tracing())
+
+    async def enable_har_for_session(self) -> None:
+        """Rotate the context to enable HAR/video recording."""
+        await self._recording.enable_har_for_session()
+
+    async def finalize_har(self) -> str | None:
+        """Flush HAR/video recording and rotate back to a baseline context."""
+        return cast(str | None, await self._recording.finalize_har())
+
+    def finalize_video(self) -> str | None:
+        """Promote recorded videos into canonical session artifact names."""
+        return cast(str | None, self._recording.finalize_video())
+
+    @property
+    def har_path(self) -> str | None:
+        """Return the active HAR path, if recording is enabled."""
+        return cast(str | None, self._recording.har_path)
+
+    def cleanup_artifacts_on_success(self) -> None:
+        """Remove heavy artifacts after successful failures-mode runs."""
+        self._recording.cleanup_artifacts_on_success()
 
     def _build_context_kwargs(
         self,
@@ -61,13 +99,15 @@ class BrowserManager:
     ) -> dict[str, Any]:
         """Build kwargs for browser.new_context()."""
         browser_version = str(getattr(self._browser, "version", "") or "")
+        viewport = build_viewport(
+            self._rng,
+            self.visitor.fingerprint.viewport_width_range,
+            self.visitor.fingerprint.viewport_height_range,
+        )
+        self._last_viewport = dict(viewport)
         kwargs: dict[str, Any] = {
             "storage_state": storage_state,
-            "viewport": build_viewport(
-                self._rng,
-                self.visitor.fingerprint.viewport_width_range,
-                self.visitor.fingerprint.viewport_height_range,
-            ),
+            "viewport": viewport,
             "locale": self.site.locale,
             "timezone_id": self.site.timezone_id,
             "user_agent": build_user_agent(browser_version),
@@ -136,6 +176,7 @@ class BrowserManager:
 
     async def close(self) -> None:
         """Close browser context, browser, and Playwright runtime."""
+        await self.stop_tracing()
         if self._context:
             await self._context.close()
             self._context = None
