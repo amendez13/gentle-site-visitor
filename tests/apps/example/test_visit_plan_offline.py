@@ -46,6 +46,17 @@ def test_build_plan_limit_sets_for_each_limit() -> None:
     assert step.hydration_retry is True
 
 
+def test_build_plan_defaults_to_twenty_asteroids(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """The reference app keeps live demos bounded to 20 asteroid pages by default."""
+    monkeypatch.delenv("GSV_EXAMPLE_LIMIT", raising=False)
+
+    plan = build_plan()
+    step = plan.steps[3]
+
+    assert isinstance(step, ForEach)
+    assert step.limit == 20
+
+
 def test_for_each_body_exercises_expected_step_types() -> None:
     """Each asteroid iteration covers navigation, wait, branch, extract, and evidence."""
     plan = build_plan(limit=1)
