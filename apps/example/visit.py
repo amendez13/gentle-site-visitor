@@ -12,6 +12,8 @@ from apps.example.auth import LIST_URL
 from gsv.visit import StepResult, VisitContext, VisitPlan
 from gsv.visit.steps import Branch, Dwell, Extract, ForEach, Navigate, RecordEvent, Scroll, WaitFor
 
+DEFAULT_ASTEROID_LIMIT = 20
+
 
 def build_plan(ctx: VisitContext | None = None, *, limit: int | None = None) -> VisitPlan:
     """Build a visit plan that extracts asteroid composition evidence."""
@@ -100,7 +102,7 @@ def _resolve_limit(limit: int | None) -> int | None:
         return limit
     raw = os.getenv("GSV_EXAMPLE_LIMIT")
     if raw in (None, ""):
-        return None
+        return DEFAULT_ASTEROID_LIMIT
     value = int(raw)
     return value if value > 0 else None
 

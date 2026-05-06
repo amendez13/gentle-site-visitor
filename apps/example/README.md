@@ -23,14 +23,15 @@ cooldowns so bounded headed demos visibly move through pages without stalling
 for minutes. Lower `GSV_EXAMPLE_RATE_LIMIT_PER_HOUR` and raise
 `GSV_EXAMPLE_DELAY_MIN/MAX` for slower unattended runs.
 
-This is an interactive reference app, not a bulk crawler. Keep runs bounded for
-demos with `GSV_EXAMPLE_LIMIT=5`.
+This is an interactive reference app, not a bulk crawler. By default, live runs
+visit up to 20 asteroid pages. Set `GSV_EXAMPLE_LIMIT` to a positive integer to
+choose a different cap, or `0` to disable the cap.
 
 ## Running
 
 ```bash
 gsv --config apps/example/config.yaml config validate --site example
-GSV_EXAMPLE_LIMIT=5 gsv --config apps/example/config.yaml run example --once --headed --observability=always
+gsv --config apps/example/config.yaml run example --once --headed --observability=always
 gsv --config apps/example/config.yaml sessions list --site example
 gsv --config apps/example/config.yaml sessions inspect --site example --latest
 gsv --config apps/example/config.yaml plan show --site example --date 2026-05-05 --seed 42
@@ -39,7 +40,7 @@ gsv --config apps/example/config.yaml plan show --site example --date 2026-05-05
 For a faster manual smoke run while preserving the same plan shape:
 
 ```bash
-GSV_EXAMPLE_LIMIT=5 \
+GSV_EXAMPLE_LIMIT=20 \
 GSV_EXAMPLE_DELAY_MIN=0 \
 GSV_EXAMPLE_DELAY_MAX=0 \
 GSV_EXAMPLE_DISTRACTION_CHANCE=0 \
