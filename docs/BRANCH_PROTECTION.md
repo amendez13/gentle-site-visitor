@@ -57,6 +57,7 @@ All CI checks must pass before merging:
 - `Test Python 3.11` - Tests on Python 3.11
 - `Test Python 3.12` - Tests on Python 3.12
 - `Security Checks` - bandit and pip-audit gate
+- `Secret Scanning` - Gitleaks history scan
 - `Validate Configuration` - Configuration file validation
 - `CI Status Check` - Final CI status verification
 
@@ -126,6 +127,7 @@ The configuration file is located at `scripts/github/branch-protection-config.js
     - `Test Python 3.11`
     - `Test Python 3.12`
     - `Security Checks`
+    - `Secret Scanning`
     - `Validate Configuration`
     - `CI Status Check`
 - [x] Require conversation resolution before merging
@@ -153,6 +155,7 @@ gh api /repos/<owner>/<repo>/branches/main/protection --jq '.required_status_che
 #   "Test Python 3.11",
 #   "Test Python 3.12",
 #   "Security Checks",
+#   "Secret Scanning",
 #   "Validate Configuration",
 #   "CI Status Check"
 # ]

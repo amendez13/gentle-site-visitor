@@ -9,6 +9,7 @@
       "Test Python 3.11",
       "Test Python 3.12",
       "Security Checks",
+      "Secret Scanning",
       "Validate Configuration",
       "CI Status Check"
     ]
