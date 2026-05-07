@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Reusable skeleton for authenticated, paced, observable site visits."
 readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
 dependencies = [
     "PyYAML>=6.0.3",
     "click>=8.1.7",
