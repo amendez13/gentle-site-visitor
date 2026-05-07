@@ -15,6 +15,7 @@ RUN apt-get update \
         ca-certificates \
         curl \
         git \
+        gnupg \
         jq \
     && rm -rf /var/lib/apt/lists/*
 

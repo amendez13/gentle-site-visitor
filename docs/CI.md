@@ -40,6 +40,7 @@ All CI jobs except `resolve-runner` execute in the same image:
 - no per-job `actions/setup-python`
 - Python matrix jobs call preinstalled interpreters directly (`python3.10`, `python3.11`, `python3.12`)
 - coverage and test jobs install the checked-out `requirements-dev.txt`, then install Playwright Chromium with its system dependencies before running pytest, so dependency changes in a PR are tested even before the shared image is rebuilt
+- the CI image includes `gnupg` because `codecov/codecov-action@v6` verifies the Codecov CLI before uploading coverage
 
 ### Failure Short-Circuiting
 
@@ -63,7 +64,25 @@ Implementation detail:
 
 ### 3. Coverage Check
 
-Purpose: enforce the `95%` coverage gate and publish the HTML coverage artifact.
+Purpose: enforce the `95%` coverage gate, publish the HTML coverage artifact,
+and upload `coverage.xml` to Codecov.
+
+The Codecov upload is part of the required coverage job. Upload failures fail
+the job so the README coverage badge cannot silently drift to `unknown`.
+
+Private repositories require a repository-level GitHub Actions secret named
+`CODECOV_TOKEN`. Public repositories may use Codecov tokenless uploads when
+Codecov allows them, but keeping the secret configured is still acceptable.
+Create or rotate the secret from a local shell without printing the token:
+
+```bash
+gh secret set CODECOV_TOKEN --repo amendez13/gentle-site-visitor
+```
+
+The coverage job checks for the secret before invoking Codecov when GitHub
+reports the repository as private. It also installs `gnupg` on root-based
+GitHub-hosted runs if the shared image has not been rebuilt yet; self-hosted
+runs should use an image rebuilt from `infra/ci/Dockerfile`.
 
 ### 4. Test Python 3.10 / 3.11 / 3.12
 
@@ -168,7 +187,7 @@ flowchart LR
     C --> D["Coverage Check"]
     C --> E["Lint / Security / Validate Configuration"]
     D --> F["Test matrix: Python 3.10 / 3.11 / 3.12"]
-    D --> G["coverage.xml + htmlcov + Codecov"]
+    D --> G["coverage.xml + htmlcov + required Codecov upload"]
     E --> H
     F --> H
     G --> H
