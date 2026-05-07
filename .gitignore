@@ -54,6 +54,7 @@ coverage.xml
 
 # Security scanning cache
 .pip-audit-cache/
+.cache/
 
 # Deployment inventories and secrets
 infra/hetzner/inventory.local.ini

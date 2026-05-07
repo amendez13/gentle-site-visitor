@@ -193,7 +193,7 @@ pre-commit run --all-files
 GSV_API_KEY=dev gsv server dev
 ```
 
-Code quality: **Black** (formatting), **isort** (imports), **flake8** (linting), **mypy** (types), **bandit** (security), **pip-audit** (dependencies). All checks run via pre-commit hooks and CI.
+Code quality: **Black** (formatting), **isort** (imports), **flake8** (linting), **mypy** (types), **bandit** (security), **pip-audit** (dependencies), and **Gitleaks** (secret scanning). Core code checks run via pre-commit hooks and CI; Gitleaks runs in the GitHub Secret Scanning workflow.
 
 ## Worker exit codes
 

@@ -1,6 +1,6 @@
 # CI/CD Pipeline Documentation
 
-This document describes the Continuous Integration pipeline for gentle-site-visitor, including the Docker CI image, runner-resolution workflow, and the local validation path that mirrors GitHub Actions.
+This document describes the Continuous Integration pipeline for gentle-site-visitor, including the Docker CI image, runner-resolution workflow, secret scanning workflow, and the local validation path that mirrors GitHub Actions.
 
 ## Overview
 
@@ -73,13 +73,38 @@ Purpose: run the correctness matrix after the coverage gate passes.
 
 Purpose: run bandit and pip-audit in the shared CI image.
 
-### 6. Validate Configuration
+### 6. Secret Scanning
+
+Purpose: scan repository history for committed secrets with a pinned Gitleaks binary.
+
+Implementation detail:
+- runs in `.github/workflows/gitleaks.yml` on push, pull request, and manual dispatch
+- checks out full history with `fetch-depth: 0`
+- verifies the downloaded Gitleaks archive by SHA-256 before installation
+- uploads a redacted SARIF report as both a Code Scanning upload, when supported, and a workflow artifact
+
+### 7. Validate Configuration
 
 Purpose: validate YAML configuration and Python syntax.
 
-### 7. CI Status Check
+### 8. CI Status Check
 
 Purpose: aggregate job outcomes and publish the final required status, including intentional skip reasons.
+
+## Secret Scanning Workflow (`.github/workflows/gitleaks.yml`)
+
+The secret scanning workflow is intentionally separate from the containerized CI
+workflow so it runs even when the main CI workflow takes a docs-only skip path.
+It scans the full git history with Gitleaks and fails the `Secret Scanning`
+check when a potential secret is detected.
+
+The workflow uses:
+
+- `gitleaks git . --redact=100`
+- SARIF output at `gitleaks.sarif`
+- `github/codeql-action/upload-sarif` with `continue-on-error` for repositories
+  where Code Scanning upload is unavailable
+- an uploaded `gitleaks-sarif` artifact for review
 
 ## CI Image Workflow (`.github/workflows/ci-image.yml`)
 
@@ -129,6 +154,7 @@ pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=95
 pytest tests/ -v
 bandit -r src/ -ll
 pip-audit --requirement requirements.txt
+scripts/security/run-gitleaks.sh
 ```
 
 ## Containerized CI Architecture
@@ -158,10 +184,12 @@ flowchart LR
 | File | Purpose |
 |------|---------|
 | `.github/workflows/ci.yml` | Main CI workflow |
+| `.github/workflows/gitleaks.yml` | Secret scanning workflow |
 | `.github/workflows/ci-image.yml` | CI image build/publish workflow |
 | `infra/ci/Dockerfile` | Shared CI image definition |
 | `infra/ci/docker-compose.ci.yml` | Local container shell matching CI |
 | `infra/ci/build-and-push.sh` | Manual multi-arch build/push helper |
+| `scripts/security/run-gitleaks.sh` | Local pinned Gitleaks bootstrap and scan |
 | `docs/CI_RUNNER.md` | Self-hosted runner operations guidance |
 | `.pre-commit-config.yaml` | Local pre-commit checks |
 | `pyproject.toml` | Tool configurations |
