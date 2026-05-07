@@ -154,7 +154,7 @@ pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=95
 pytest tests/ -v
 bandit -r src/ -ll
 pip-audit --requirement requirements.txt
-gitleaks git . --no-banner --redact=100
+scripts/security/run-gitleaks.sh
 ```
 
 ## Containerized CI Architecture
@@ -189,6 +189,7 @@ flowchart LR
 | `infra/ci/Dockerfile` | Shared CI image definition |
 | `infra/ci/docker-compose.ci.yml` | Local container shell matching CI |
 | `infra/ci/build-and-push.sh` | Manual multi-arch build/push helper |
+| `scripts/security/run-gitleaks.sh` | Local pinned Gitleaks bootstrap and scan |
 | `docs/CI_RUNNER.md` | Self-hosted runner operations guidance |
 | `.pre-commit-config.yaml` | Local pre-commit checks |
 | `pyproject.toml` | Tool configurations |
