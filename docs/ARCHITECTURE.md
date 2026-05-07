@@ -108,21 +108,21 @@ These are the load-bearing decisions, in priority order. Every layer below shoul
 
 ```mermaid
 flowchart TD
-    A[Plan slot fires] --> B[Acquire lease]
-    B --> C[Start browser + restore storage_state]
+    A["Plan slot fires"] --> B["Acquire lease"]
+    B --> C["Start browser and restore storage state"]
     C --> D{Authenticated?}
-    D -->|No| E[Login flow: cookies → variants → human-typed creds]
-    D -->|Yes| F[Optional post-auth warmup]
-    E -->|Headed challenge| E1[Wait for manual verification]
-    E -->|Headless challenge| E2[Fail fast → exit code 10]
+    D -->|"No"| E["Login flow: cookies, variants, credentials"]
+    D -->|"Yes"| F["Optional post-auth warmup"]
+    E -->|"Headed challenge"| E1["Wait for manual verification"]
+    E -->|"Headless challenge"| E2["Fail fast with exit code 10"]
     E1 --> F
-    F --> G[Run VisitPlan steps]
+    F --> G["Run VisitPlan steps"]
     G --> H{Quality gate pass?}
-    H -->|No| I[Submit failed outcome + partial telemetry]
-    H -->|Yes| J[Submit success + results]
-    I --> K[Finalize session bundle]
+    H -->|"No"| I["Submit failed outcome and partial telemetry"]
+    H -->|"Yes"| J["Submit success and results"]
+    I --> K["Finalize session bundle"]
     J --> K
-    K --> L[Release lease]
+    K --> L["Release lease"]
 ```
 
 Inside step `G`, every step boundary is a cancellation checkpoint and a possible burst-cooldown trigger.
@@ -549,15 +549,15 @@ sequenceDiagram
     participant V as VisitRunner
     participant Rec as SessionRecorder
 
-    Plan->>W: slot fires (run_template, params)
+    Plan->>W: Slot fires with run template and params
     W->>API: register lease
     API-->>W: lease_token
     W->>API: claim run
     API-->>W: run details
-    W->>Rec: open session dir, write initial manifest
-    W->>B: start browser, restore storage_state
+    W->>Rec: open session directory and write initial manifest
+    W->>B: start browser and restore storage state
     B-->>W: context
-    W->>V: VisitPlan(login + warmup + plan steps)
+    W->>V: run VisitPlan with login, warmup, and steps
     loop heartbeat
         W->>API: heartbeat (every 30s)
     end
@@ -565,19 +565,19 @@ sequenceDiagram
         V->>V: cancellation.check(pre)
         V->>V: rate_limiter.acquire()
         V->>B: step.execute()
-        V->>V: content_aware_wait + delay + burst tick
+        V->>V: content wait, delay, and burst tick
         V->>V: cancellation.check(post)
     end
     V-->>W: StepResults
     W->>W: quality gate
     alt quality pass
-        W->>API: submit success + results
+        W->>API: submit success with results
     else cancellation requested
-        W->>API: cancellation_ack + partial results
+        W->>API: acknowledge cancellation with partial results
     else quality fail
-        W->>API: submit failed + diagnostics
+        W->>API: submit failed with diagnostics
     end
-    W->>Rec: finalize manifest, finalize HAR/video, cleanup if mode=failures+success
+    W->>Rec: finalize manifest and artifacts
     W->>API: release lease
 ```
 
