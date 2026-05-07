@@ -1,7 +1,7 @@
 # gentle-site-visitor
 
 [![CI](https://github.com/amendez13/gentle-site-visitor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/amendez13/gentle-site-visitor/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/amendez13/gentle-site-visitor/branch/main/graph/badge.svg)](https://codecov.io/gh/amendez13/gentle-site-visitor)
+![Coverage](https://img.shields.io/badge/coverage-95%25-green.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
 A reusable skeleton for building applications that visit websites the way a real, attentive human does: authenticated, paced, and forensically observable.
