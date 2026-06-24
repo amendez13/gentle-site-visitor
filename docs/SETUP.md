@@ -4,7 +4,7 @@ This guide walks you through setting up gentle-site-visitor for development or u
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- Python 3.12 or higher
 - pip (Python package installer)
 - git
 

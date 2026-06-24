@@ -219,7 +219,7 @@ gsv sessions purge --older-than 14 --dry-run
 GitHub Actions runs on every push and PR:
 
 1. **Lint**: Black, isort, flake8, mypy
-2. **Test**: pytest across Python 3.10, 3.11, 3.12
+2. **Test**: pytest across Python 3.12
 3. **Security**: bandit and pip-audit
 
 See [docs/CI.md](docs/CI.md) for details.
