@@ -238,7 +238,7 @@ jobs:
       options: ${{ needs.resolve-runner.outputs.container_options }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: repo
 
@@ -325,7 +325,7 @@ jobs:
         python-version: ['3.12']
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: repo
 
@@ -387,7 +387,7 @@ jobs:
       options: ${{ needs.resolve-runner.outputs.container_options }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: repo
 
@@ -432,7 +432,7 @@ jobs:
       options: ${{ needs.resolve-runner.outputs.container_options }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: repo
 
