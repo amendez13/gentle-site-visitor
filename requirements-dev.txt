@@ -5,7 +5,7 @@
 pytest>=9.1.1
 pytest-cov>=7.1.0
 pytest-mock>=3.17.0
-pytest-asyncio>=1.4.0
+pytest-asyncio>=1.5.0
 
 # Code quality
 black>=26.10.1
